@@ -1,25 +1,67 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>এআই ফাইন্যান্স | লগিন</title>
+    <title>AI Finance | Welcome</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 350px; text-align: center; }
-        h2 { color: #202124; font-size: 24px; margin-bottom: 30px; }
-        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #f1f3f4; transition: 0.3s; }
-        input:focus { outline: none; border-color: #1a73e8; background: white; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
-        .btn { width: 100%; padding: 14px; background-color: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background-color: #1557b0; }
-        .toggle-text { margin-top: 20px; font-size: 14px; color: #5f6368; cursor: pointer; }
-        .toggle-text span { color: #1a73e8; font-weight: bold; }
-        .flash { color: #d93025; margin-bottom: 15px; font-size: 14px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; color: #2d333a;
+        }
+        .auth-container {
+            width: 100%; max-width: 360px; padding: 20px;
+            text-align: center;
+        }
+        .logo { font-size: 32px; margin-bottom: 20px; }
+        h1 { font-size: 32px; font-weight: 700; margin-bottom: 30px; letter-spacing: -0.02em; }
+        
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        input {
+            width: 100%; padding: 12px 15px;
+            border: 1px solid #c5c5d2; border-radius: 6px;
+            font-size: 16px; box-sizing: border-box; transition: 0.2s;
+        }
+        input:focus { outline: none; border-color: #10a37f; box-shadow: 0 0 0 1px #10a37f; }
+        
+        .btn-primary {
+            width: 100%; padding: 14px; margin-top: 10px;
+            background-color: #10a37f; /* ChatGPT Green */
+            color: white; border: none; border-radius: 6px;
+            font-size: 16px; font-weight: 500; cursor: pointer; transition: 0.2s;
+        }
+        .btn-primary:hover { background-color: #0e906f; }
+        
+        .divider {
+            display: flex; align-items: center; text-align: center; margin: 25px 0; color: #8e8ea0; font-size: 12px; text-transform: uppercase;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid #e5e5ea; }
+        .divider:not(:empty)::before { margin-right: .25em; }
+        .divider:not(:empty)::after { margin-left: .25em; }
+        
+        .btn-google {
+            width: 100%; padding: 14px; background-color: #ffffff;
+            color: #2d333a; border: 1px solid #c5c5d2; border-radius: 6px;
+            font-size: 16px; font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: 0.2s;
+        }
+        .btn-google:hover { background-color: #f7f7f8; }
+        .btn-google img { width: 20px; height: 20px; margin-right: 10px; }
+        
+        .toggle-link { margin-top: 25px; font-size: 14px; color: #10a37f; cursor: pointer; text-decoration: none; }
+        .toggle-link:hover { text-decoration: underline; }
+        
+        .flash { color: #d93025; font-size: 14px; margin-bottom: 15px; background: #fce8e6; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
-    <div class="auth-box">
-        <h2 id="formTitle">স্বাগতম ফিরে এসেছেন</h2>
+
+    <div class="auth-container">
+        <div class="logo">✦</div>
+        <h1 id="pageTitle">Welcome back</h1>
         
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -28,24 +70,38 @@
         {% endwith %}
 
         <form id="authForm" action="/login" method="POST">
-            <input type="text" name="username" placeholder="ইউজারনেম" required>
-            <input type="password" name="password" placeholder="পাসওয়ার্ড" required>
-            <button type="submit" class="btn" id="submitBtn">লগিন করুন</button>
+            <div class="input-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-primary" id="submitBtn">Continue</button>
         </form>
-        
-        <div class="toggle-text" onclick="toggleForm()">অ্যাকাউন্ট নেই? <span>নতুন তৈরি করুন</span></div>
+
+        <div class="toggle-link" onclick="toggleMode()" id="toggleBtn">Don't have an account? Sign up</div>
+
+        <div class="divider">OR</div>
+
+        <!-- Google Login Button -->
+        <button class="btn-google" onclick="alert('Google Login সেটআপ করার জন্য Google Cloud-এ প্রজেক্ট খুলতে হবে। আপাতত ইমেইল দিয়ে লগিন করুন।')">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+            Continue with Google
+        </button>
     </div>
 
     <script>
         let isLogin = true;
-        function toggleForm() {
+        function toggleMode() {
             isLogin = !isLogin;
-            document.getElementById('formTitle').innerText = isLogin ? "স্বাগতম ফিরে এসেছেন" : "নতুন অ্যাকাউন্ট খুলুন";
-            document.getElementById('submitBtn').innerText = isLogin ? "লগিন করুন" : "রেজিস্টার করুন";
+            document.getElementById('pageTitle').innerText = isLogin ? "Welcome back" : "Create your account";
+            document.getElementById('submitBtn').innerText = isLogin ? "Continue" : "Sign up";
             document.getElementById('authForm').action = isLogin ? "/login" : "/register";
-            document.querySelector('.toggle-text').innerHTML = isLogin ? "অ্যাকাউন্ট নেই? <span>নতুন তৈরি করুন</span>" : "আগে থেকেই অ্যাকাউন্ট আছে? <span>লগিন করুন</span>";
+            document.getElementById('toggleBtn').innerText = isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in";
         }
     </script>
+
 </body>
 </html>
-
