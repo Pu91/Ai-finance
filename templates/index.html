@@ -1,1 +1,29 @@
 
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>স্মার্ট হিসাবরক্ষক</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>💸 স্মার্ট হিসাবরক্ষক</h2>
+        <p>আপনার ব্যক্তিগত AI ফাইন্যান্স ম্যানেজার</p>
+        
+        <div class="input-section">
+            <textarea id="userInput" placeholder="উদাহরণ: আজকে বাজারে গিয়ে ৩০০ টাকার সবজি কিনলাম"></textarea>
+            <button id="saveBtn" onclick="saveExpense()">হিসাব সেভ করুন</button>
+            <p id="statusMsg"></p>
+        </div>
+
+        <h3>📊 আপনার সর্বশেষ খরচ</h3>
+        <div id="expenseList">
+            <!-- JavaScript দিয়ে এখানে কার্ডগুলো আসবে -->
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
