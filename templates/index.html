@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI হিসাবরক্ষক</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 500px; width: 100%; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .btn { width: 100%; padding: 12px; background-color: #FF4B4B; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .btn-sec { background-color: #4CAF50; }
+        .expense-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 12px; border-left: 5px solid #FF4B4B; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .cat { font-size: 18px; font-weight: bold; }
+        .amt { font-size: 22px; font-weight: bold; color: #FF4B4B; float: right; }
+        .date { font-size: 12px; color: #888; margin-bottom: 8px; }
+        .flash { color: red; font-weight: bold; text-align: center; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; }
+        .logout { color: #888; text-decoration: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Flash Messages (Error/Warnings) -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <p class="flash">{{ message }}</p>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- ড্যাশবোর্ড (যদি লগিন করা থাকে) -->
+        {% if logged_in %}
+            <div class="header-box">
+                <h2>👋 স্বাগতম, {{ username }}!</h2>
+                <a href="/logout" class="logout">লগআউট</a>
+            </div>
+            
+            <div class="card">
+                <h3>🎙️ নতুন খরচ যোগ করুন</h3>
+                <form action="/add_expense" method="POST">
+                    <textarea name="expense_text" placeholder="যেমন: আজকে ১৫০ টাকার চা খেলাম" rows="3" required></textarea>
+                    <button type="submit" class="btn">হিসাব সেভ করুন</button>
+                </form>
+            </div>
+
+            <h3>📊 আপনার সর্বশেষ খরচ</h3>
+            {% if expenses %}
+                {% for exp in expenses %}
+                <div class="expense-item">
+                    <div class="date">📅 {{ exp.date }}</div>
+                    <span class="cat">🛍️ {{ exp.category }}</span>
+                    <span class="amt">৳ {{ exp.amount }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>এখনো কোনো হিসাব যোগ করা হয়নি।</p>
+            {% endif %}
+
+        <!-- লগিন ও রেজিস্টার পেজ (লগিন না থাকলে) -->
+        {% else %}
+            <h2 style="text-align: center;">💸 স্মার্ট হিসাবরক্ষক</h2>
+            
+            <div class="card">
+                <h3>লগিন করুন</h3>
+                <form action="/login" method="POST">
+                    <input type="text" name="username" placeholder="ইউজারনেম" required>
+                    <input type="password" name="password" placeholder="পাসওয়ার্ড" required>
+                    <button type="submit" class="btn">লগিন</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>নতুন অ্যাকাউন্ট খুলুন</h3>
+                <form action="/register" method="POST">
+                    <input type="text" name="username" placeholder="নতুন ইউজারনেম" required>
+                    <input type="password" name="password" placeholder="নতুন পাসওয়ার্ড" required>
+                    <button type="submit" class="btn btn-sec">রেজিস্টার</button>
+                </form>
+            </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>
