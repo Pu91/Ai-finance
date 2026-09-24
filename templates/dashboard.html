@@ -11,24 +11,24 @@
             background-color: #f7f7f8; margin: 0; padding-bottom: 120px; color: #2d333a;
         }
         
-        /* Header & Sidebar */
+        /* Header & Slim Sidebar */
         .header {
-            display: flex; align-items: center; background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px); padding: 15px 20px;
+            display: flex; align-items: center; background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px); padding: 12px 20px;
             position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea;
         }
         .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2d333a; margin-right: 15px; }
-        .header-title { font-size: 20px; font-weight: 700; margin: 0; }
+        .header-title { font-size: 18px; font-weight: 700; margin: 0; }
         
+        /* Sidebar adjusted to be thinner */
         .sidebar {
-            position: fixed; top: 0; left: -280px; width: 250px; height: 100%;
+            position: fixed; top: 0; left: -220px; width: 220px; height: 100%;
             background: white; box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-            transition: 0.3s ease; z-index: 200; padding: 20px; display: flex; flex-direction: column;
+            transition: 0.3s ease; z-index: 200; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box;
         }
         .sidebar.active { left: 0; }
-        .close-btn { align-self: flex-end; background: none; border: none; font-size: 24px; cursor: pointer; color: #8e8ea0; }
-        .nav-item { padding: 15px 0; font-size: 18px; color: #2d333a; text-decoration: none; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
-        .nav-item i { margin-right: 15px; }
+        .close-btn { align-self: flex-end; background: none; border: none; font-size: 22px; cursor: pointer; color: #8e8ea0; }
+        .nav-item { padding: 12px 0; font-size: 16px; color: #2d333a; text-decoration: none; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
         
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -36,71 +36,74 @@
         }
         .overlay.active { display: block; opacity: 1; }
 
-        /* Main Container & 3 Cards in a Row */
-        .container { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+        /* Main Container & Small Cards side-by-side */
+        .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
         
+        /* Forces 3 cards in a row, no scroll */
         .cards-row {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;
-        }
-        @media (max-width: 600px) {
-            /* For mobile, allows horizontal scroll to keep them in one line */
-            .cards-row { display: flex; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; }
-            .card { min-width: 80%; scroll-snap-align: center; }
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px;
         }
         
         .card {
-            background: white; padding: 20px; border-radius: 20px;
-            text-decoration: none; color: #2d333a; position: relative; overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0;
+            background: white; padding: 12px 8px; border-radius: 14px;
+            text-decoration: none; color: #2d333a; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
         
-        .card-icon { font-size: 28px; margin-bottom: 10px; display: inline-block; padding: 10px; border-radius: 12px; }
+        .card-icon { font-size: 18px; margin-bottom: 8px; display: inline-block; padding: 6px; border-radius: 10px; }
         .card.daily .card-icon { background: #fff0ed; color: #ff6b6b; }
         .card.weekly .card-icon { background: #e8f5e9; color: #4caf50; }
         .card.monthly .card-icon { background: #e3f2fd; color: #2196f3; }
         
-        .card-title { font-size: 14px; font-weight: 600; color: #8e8ea0; margin: 0 0 5px 0; }
-        .card-amount { font-size: 26px; font-weight: 800; margin: 0; }
+        .card-title { font-size: 11px; font-weight: 600; color: #8e8ea0; margin: 0 0 5px 0; line-height: 1.2; }
+        .card-amount { font-size: 16px; font-weight: 800; margin: 0; }
 
         /* Chat History Box */
         .chat-history {
-            background: white; border-radius: 20px; padding: 20px; min-height: 200px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 20px;
+            background: white; border-radius: 16px; padding: 15px; min-height: 250px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px;
         }
-        .chat-msg { margin-bottom: 15px; padding: 12px 16px; border-radius: 12px; font-size: 15px; max-width: 80%; }
+        .chat-msg { margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 85%; }
         .chat-msg.user { background: #f0f0f0; margin-left: auto; border-bottom-right-radius: 2px; }
-        .chat-msg.ai { background: #e3f2fd; color: #0d47a1; margin-right: auto; border-bottom-left-radius: 2px; font-weight: 500;}
+        .chat-msg.ai { background: #e3f2fd; color: #0d47a1; margin-right: auto; border-bottom-left-radius: 2px; }
 
-        /* Footer & Apple/Gemini Voice Input */
+        /* Footer Input Area */
         .chat-footer {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
-            padding: 15px 0; border-top: 1px solid #e5e5ea; display: flex; justify-content: center; z-index: 90;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px);
+            padding: 12px 0; border-top: 1px solid #e5e5ea; display: flex; justify-content: center; z-index: 90;
         }
         .chat-wrapper {
-            display: flex; align-items: center; width: 100%; max-width: 800px; padding: 0 20px; gap: 10px;
+            display: flex; align-items: center; width: 100%; max-width: 800px; padding: 0 15px; gap: 8px;
         }
         .text-input {
-            flex: 1; padding: 15px 20px; border-radius: 30px; border: 1px solid #d1d5db;
-            font-size: 16px; outline: none; background: white; transition: 0.3s;
+            flex: 1; padding: 12px 15px; border-radius: 25px; border: 1px solid #d1d5db;
+            font-size: 15px; outline: none; background: white; transition: 0.3s;
         }
-        .text-input:focus { border-color: #10a37f; box-shadow: 0 0 0 2px rgba(16,163,127,0.2); }
+        .text-input:focus { border-color: #10a37f; }
         
-        /* The Glowing Siri/Gemini Button */
-        .siri-btn {
-            width: 55px; height: 55px; border-radius: 50%; border: none; cursor: pointer;
-            background: conic-gradient(from 0deg, #ff0080, #7928ca, #0070f3, #10a37f, #ff0080);
-            animation: rotateOrb 4s linear infinite; position: relative;
-            display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        /* New Animated Voice Button (No Logo, Just Animation) */
+        .voice-anim-btn {
+            width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+            background: linear-gradient(135deg, #10a37f, #0070f3);
+            animation: pulse-ring 2s infinite; outline: none; transition: 0.2s;
         }
-        .siri-btn::after {
-            content: "🎙️"; font-size: 22px; position: absolute; background: white;
-            width: 45px; height: 45px; border-radius: 50%; display: flex;
-            justify-content: center; align-items: center;
+        .voice-anim-btn:active { transform: scale(0.9); }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 163, 127, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); }
         }
-        @keyframes rotateOrb { 100% { transform: rotate(360deg); } }
+
+        /* Dedicated Send Button */
+        .send-btn {
+            width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+            background: #2d333a; color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: 0.2s;
+        }
+        .send-btn:active { transform: scale(0.9); }
 
         /* Voice Popup Modal (Gemini Style) */
         .voice-modal {
@@ -111,42 +114,40 @@
         }
         .voice-modal.active { opacity: 1; pointer-events: auto; }
         
-        .listening-text { font-size: 24px; font-weight: 600; color: #2d333a; margin-bottom: 40px; }
+        .listening-text { font-size: 20px; font-weight: 600; color: #2d333a; margin-bottom: 40px; }
         
-        .waves {
-            display: flex; align-items: center; gap: 8px; height: 60px;
-        }
+        .waves { display: flex; align-items: center; gap: 6px; height: 60px; }
         .wave {
-            width: 8px; height: 20px; border-radius: 4px;
-            background: linear-gradient(to top, #0070f3, #ff0080);
-            animation: soundWave 1s ease-in-out infinite alternate;
+            width: 6px; height: 15px; border-radius: 4px;
+            background: linear-gradient(to top, #0070f3, #10a37f);
+            animation: soundWave 0.8s ease-in-out infinite alternate;
         }
-        .wave:nth-child(2) { animation-delay: 0.2s; }
-        .wave:nth-child(3) { animation-delay: 0.4s; }
-        .wave:nth-child(4) { animation-delay: 0.6s; }
-        .wave:nth-child(5) { animation-delay: 0.8s; }
+        .wave:nth-child(2) { animation-delay: 0.15s; }
+        .wave:nth-child(3) { animation-delay: 0.3s; }
+        .wave:nth-child(4) { animation-delay: 0.45s; }
+        .wave:nth-child(5) { animation-delay: 0.6s; }
         
         @keyframes soundWave { 0% { height: 10px; } 100% { height: 60px; } }
         
         .close-modal {
-            position: absolute; top: 30px; right: 30px; background: none; border: none; font-size: 30px; cursor: pointer; color: #8e8ea0;
+            position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 28px; cursor: pointer; color: #8e8ea0;
         }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar & Overlay -->
+    <!-- Slim Sidebar & Overlay -->
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <button class="close-btn" onclick="toggleSidebar()">✕</button>
-        <div style="margin: 20px 0; text-align: center;">
-            <div style="width: 60px; height: 60px; background: #10a37f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 10px auto; font-weight: bold;">
+        <div style="margin: 10px 0; text-align: center;">
+            <div style="width: 50px; height: 50px; background: #10a37f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto; font-weight: bold;">
                 {{ username[0]|upper }}
             </div>
-            <h3 style="margin:0;">{{ username }}</h3>
-            <p style="color:#8e8ea0; font-size:12px; margin-top:5px;">AI Finance Member</p>
+            <h3 style="margin:0; font-size: 16px;">{{ username }}</h3>
+            <p style="color:#8e8ea0; font-size:11px; margin-top:5px;">AI Finance Member</p>
         </div>
-        <hr style="border:0; border-top:1px solid #f0f0f0; margin-bottom:20px;">
+        <hr style="border:0; border-top:1px solid #f0f0f0; margin-bottom:15px;">
         <a href="#" class="nav-item">👤 Profile</a>
         <a href="#" class="nav-item">⚙️ Settings</a>
         <a href="/logout" class="nav-item" style="color: #d93025; margin-top: auto;">🚪 Logout</a>
@@ -160,40 +161,43 @@
 
     <!-- Main Content -->
     <div class="container">
-        <!-- 3 Cards Row -->
+        <!-- 3 Small Cards in one row -->
         <div class="cards-row">
             <a href="/details/daily" class="card daily">
                 <div class="card-icon">📅</div>
-                <p class="card-title">Today's Expense</p>
+                <p class="card-title">Today</p>
                 <p class="card-amount">৳ <span class="counter" data-target="{{ daily }}">0</span></p>
             </a>
             <a href="/details/weekly" class="card weekly">
                 <div class="card-icon">📊</div>
-                <p class="card-title">Weekly Expense</p>
+                <p class="card-title">Weekly</p>
                 <p class="card-amount">৳ <span class="counter" data-target="{{ weekly }}">0</span></p>
             </a>
             <a href="/details/monthly" class="card monthly">
                 <div class="card-icon">💰</div>
-                <p class="card-title">Monthly Expense</p>
+                <p class="card-title">Monthly</p>
                 <p class="card-amount">৳ <span class="counter" data-target="{{ monthly }}">0</span></p>
             </a>
         </div>
 
         <!-- AI Chat Box -->
         <div class="chat-history" id="chatBox">
-            <div class="chat-msg ai">✨ হ্যালো! আমি আপনার স্মার্ট ফাইন্যান্স এআই। আপনার আজকের খরচের হিসাব বলতে নিচের মাইকে চাপ দিন।</div>
+            <div class="chat-msg ai">✨ হ্যালো! আমি আপনার এআই। হিসাব বলতে স্পিকারে চাপ দিন অথবা টাইপ করে মেসেজ পাঠান।</div>
         </div>
     </div>
 
-    <!-- Chat Footer -->
+    <!-- Chat Footer with New Voice and Send Button -->
     <div class="chat-footer">
         <div class="chat-wrapper">
             <input type="text" id="textInput" class="text-input" placeholder="Message AI Finance..." onkeypress="handleEnter(event)">
-            <button class="siri-btn" onclick="openVoiceModal()"></button>
+            <!-- Voice Button without logo, just animation -->
+            <button class="voice-anim-btn" onclick="openVoiceModal()"></button>
+            <!-- Dedicated Send Button -->
+            <button class="send-btn" onclick="handleSendClick()">➤</button>
         </div>
     </div>
 
-    <!-- Voice Popup Modal (Gemini Style) -->
+    <!-- Voice Popup Modal -->
     <div class="voice-modal" id="voiceModal">
         <button class="close-modal" onclick="closeVoiceModal()">✕</button>
         <div class="listening-text" id="voiceText">AI শুনছে... কথা বলুন</div>
@@ -213,7 +217,7 @@
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        // Number Counter Animation
+        // Number Counter
         const counters = document.querySelectorAll('.counter');
         counters.forEach(counter => {
             const target = +counter.getAttribute('data-target');
@@ -268,7 +272,7 @@
                 voiceModal.classList.add('active');
                 recognition.start();
             } else {
-                alert("আপনার ব্রাউজারে ভয়েস সাপোর্ট নেই। দয়া করে Chrome ব্যবহার করুন।");
+                alert("আপনার ব্রাউজারে ভয়েস সাপোর্ট নেই।");
             }
         }
 
@@ -279,14 +283,16 @@
 
         // Text Chat Logic
         function handleEnter(e) {
-            if(e.key === 'Enter') {
-                const input = document.getElementById('textInput');
-                const text = input.value;
-                if(text) {
-                    addChat(text, 'user');
-                    input.value = '';
-                    sendDataToAI(text);
-                }
+            if(e.key === 'Enter') handleSendClick();
+        }
+
+        function handleSendClick() {
+            const input = document.getElementById('textInput');
+            const text = input.value;
+            if(text) {
+                addChat(text, 'user');
+                input.value = '';
+                sendDataToAI(text);
             }
         }
 
@@ -295,12 +301,11 @@
             div.className = `chat-msg ${sender}`;
             div.innerText = text;
             chatBox.appendChild(div);
-            // Scroll to bottom
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function sendDataToAI(text) {
-            addChat("AI প্রসেস করছে...", 'ai'); // Temp message
+            addChat("AI প্রসেস করছে...", 'ai');
             
             fetch('/api/chat', {
                 method: 'POST',
@@ -309,11 +314,8 @@
             })
             .then(res => res.json())
             .then(data => {
-                // Remove temp message
                 chatBox.removeChild(chatBox.lastChild);
                 addChat(data.reply, 'ai');
-                
-                // Refresh numbers after 2 seconds without reloading the whole page (or reload if you prefer)
                 setTimeout(() => location.reload(), 2000);
             });
         }
