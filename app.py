@@ -1,20 +1,19 @@
 from flask import Flask, render_template, request, session, redirect, url_for, flash, jsonify
 import firebase_admin
 from firebase_admin import credentials, firestore
-import google.generativeai as genai
-import datetime
 import os
 import hashlib
 import json
+import datetime
+from groq import Groq
 
 app = Flask(__name__)
 app.secret_key = "super_secret_finance_key"
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    # JSON format mandatory
-    model = genai.GenerativeModel('gemini-pro', generation_config={"response_mime_type": "application/json"})
+# Groq API সেটআপ
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if GROQ_API_KEY:
+    client = Groq(api_key=GROQ_API_KEY)
 
 if not firebase_admin._apps:
     cred = credentials.Certificate("firebase-key.json")
@@ -111,16 +110,28 @@ def api_chat():
     prompt = f"""
     Extract the expenses from the user's input: "{user_input}"
     Return a JSON object with exactly two keys:
-    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found or if the user is just greeting like 'Hi').
-    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or a friendly greeting/response if they just said "Hi" or something else.
-    Do not use markdown blocks like ```json.
+    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found).
+    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or a friendly greeting if no expenses were found.
+    Output ONLY valid JSON.
     """
     
     try:
-        response = model.generate_content(prompt)
-        # Markdown backticks thakle seta remove korar jonno
-        clean_text = response.text.replace('```json', '').replace('```', '').strip()
-        ai_data = json.loads(clean_text)
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a smart financial assistant. You always output pure JSON."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            model="llama3-8b-8192",
+            response_format={"type": "json_object"}
+        )
+        
+        ai_data = json.loads(chat_completion.choices[0].message.content)
         
         expenses = ai_data.get("expenses", [])
         reply = ai_data.get("reply_message", "Processed successfully.")
@@ -138,8 +149,7 @@ def api_chat():
                 })
         return jsonify({"reply": reply})
     except Exception as e:
-        # Asol error ta return korchi jate apni screen-ei dekhte pan
-        print(f"Chat Error: {e}") 
+        print(f"Groq Error: {e}")
         return jsonify({"reply": f"API Error: {str(e)}"})
 
 if __name__ == '__main__':
