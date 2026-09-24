@@ -1,152 +1,115 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Finance | Dashboard</title>
     <style>
         /* Base Styles */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f7f7f8; margin: 0; padding-bottom: 120px; color: #2d333a;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f7f8; margin: 0; padding-bottom: 120px; color: #2d333a; }
         
-        /* Header & Slim Sidebar */
-        .header {
-            display: flex; align-items: center; background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(12px); padding: 12px 20px;
-            position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea;
-        }
+        /* Header */
+        .header { display: flex; align-items: center; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); padding: 12px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
         .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2d333a; margin-right: 15px; }
         .header-title { font-size: 18px; font-weight: 700; margin: 0; }
         
-        /* Sidebar adjusted to be thinner */
-        .sidebar {
-            position: fixed; top: 0; left: -220px; width: 220px; height: 100%;
-            background: white; box-shadow: 4px 0 15px rgba(0,0,0,0.05);
-            transition: 0.3s ease; z-index: 200; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box;
-        }
+        /* Sidebar (Fixed width & Truncated Text) */
+        .sidebar { position: fixed; top: 0; left: -240px; width: 240px; height: 100%; background: white; box-shadow: 4px 0 15px rgba(0,0,0,0.05); transition: 0.3s ease; z-index: 200; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar.active { left: 0; }
         .close-btn { align-self: flex-end; background: none; border: none; font-size: 22px; cursor: pointer; color: #8e8ea0; }
-        .nav-item { padding: 12px 0; font-size: 16px; color: #2d333a; text-decoration: none; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
         
-        .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3); z-index: 150; display: none; opacity: 0; transition: 0.3s;
-        }
+        /* Truncate Email class */
+        .user-email { margin: 0; font-size: 15px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; text-align: center; }
+        
+        /* Language Selector */
+        .lang-box { margin: 20px 0; background: #f9f9f9; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
+        .lang-box label { font-size: 12px; color: #8e8ea0; font-weight: 600; display: block; margin-bottom: 5px; }
+        .lang-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; outline: none; background: white; cursor: pointer; }
+        
+        .nav-item { padding: 12px 0; font-size: 16px; color: #2d333a; text-decoration: none; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 150; display: none; opacity: 0; transition: 0.3s; }
         .overlay.active { display: block; opacity: 1; }
 
-        /* Main Container & Small Cards side-by-side */
+        /* Main Container & Cards */
         .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
-        
-        /* Forces 3 cards in a row, no scroll */
-        .cards-row {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px;
-        }
-        
-        .card {
-            background: white; padding: 12px 8px; border-radius: 14px;
-            text-decoration: none; color: #2d333a; text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+        .cards-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px; }
+        .card { background: white; padding: 12px 8px; border-radius: 14px; text-decoration: none; color: #2d333a; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
-        
         .card-icon { font-size: 18px; margin-bottom: 8px; display: inline-block; padding: 6px; border-radius: 10px; }
         .card.daily .card-icon { background: #fff0ed; color: #ff6b6b; }
         .card.weekly .card-icon { background: #e8f5e9; color: #4caf50; }
         .card.monthly .card-icon { background: #e3f2fd; color: #2196f3; }
-        
-        .card-title { font-size: 11px; font-weight: 600; color: #8e8ea0; margin: 0 0 5px 0; line-height: 1.2; }
+        .card-title { font-size: 11px; font-weight: 600; color: #8e8ea0; margin: 0 0 5px 0; }
         .card-amount { font-size: 16px; font-weight: 800; margin: 0; }
 
-        /* Chat History Box */
-        .chat-history {
-            background: white; border-radius: 16px; padding: 15px; min-height: 250px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px;
-        }
+        /* Chat Box */
+        .chat-history { background: white; border-radius: 16px; padding: 15px; min-height: 250px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px; }
         .chat-msg { margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px; max-width: 85%; }
         .chat-msg.user { background: #f0f0f0; margin-left: auto; border-bottom-right-radius: 2px; }
         .chat-msg.ai { background: #e3f2fd; color: #0d47a1; margin-right: auto; border-bottom-left-radius: 2px; }
 
         /* Footer Input Area */
-        .chat-footer {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px);
-            padding: 12px 0; border-top: 1px solid #e5e5ea; display: flex; justify-content: center; z-index: 90;
-        }
-        .chat-wrapper {
-            display: flex; align-items: center; width: 100%; max-width: 800px; padding: 0 15px; gap: 8px;
-        }
-        .text-input {
-            flex: 1; padding: 12px 15px; border-radius: 25px; border: 1px solid #d1d5db;
-            font-size: 15px; outline: none; background: white; transition: 0.3s;
-        }
+        .chat-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); padding: 12px 0; border-top: 1px solid #e5e5ea; display: flex; justify-content: center; z-index: 90; }
+        .chat-wrapper { display: flex; align-items: center; width: 100%; max-width: 800px; padding: 0 15px; gap: 8px; }
+        .text-input { flex: 1; padding: 12px 15px; border-radius: 25px; border: 1px solid #d1d5db; font-size: 15px; outline: none; background: white; transition: 0.3s; }
         .text-input:focus { border-color: #10a37f; }
         
-        /* New Animated Voice Button (No Logo, Just Animation) */
+        /* New Eye-Catching Animated Voice Button */
         .voice-anim-btn {
-            width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
-            background: linear-gradient(135deg, #10a37f, #0070f3);
-            animation: pulse-ring 2s infinite; outline: none; transition: 0.2s;
+            width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+            background: linear-gradient(45deg, #ff0080, #ff8c00, #40e0d0, #ff0080);
+            background-size: 300% 300%;
+            animation: gradient-shift 3s ease infinite, pulse-glow 2s infinite;
+            box-shadow: 0 0 15px rgba(255, 0, 128, 0.5); outline: none; transition: 0.2s;
         }
         .voice-anim-btn:active { transform: scale(0.9); }
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 163, 127, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 163, 127, 0); }
+        
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes pulse-glow { 
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 128, 0.6); } 
+            70% { box-shadow: 0 0 0 15px rgba(255, 0, 128, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 128, 0); } 
         }
 
-        /* Dedicated Send Button */
-        .send-btn {
-            width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
-            background: #2d333a; color: white; display: flex; align-items: center; justify-content: center;
-            font-size: 16px; transition: 0.2s;
-        }
+        .send-btn { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0; background: #2d333a; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
         .send-btn:active { transform: scale(0.9); }
 
-        /* Voice Popup Modal (Gemini Style) */
-        .voice-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
-            z-index: 300; display: flex; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: 0.3s ease;
-        }
+        /* Voice Modal */
+        .voice-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); z-index: 300; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: 0.3s ease; }
         .voice-modal.active { opacity: 1; pointer-events: auto; }
-        
         .listening-text { font-size: 20px; font-weight: 600; color: #2d333a; margin-bottom: 40px; }
-        
         .waves { display: flex; align-items: center; gap: 6px; height: 60px; }
-        .wave {
-            width: 6px; height: 15px; border-radius: 4px;
-            background: linear-gradient(to top, #0070f3, #10a37f);
-            animation: soundWave 0.8s ease-in-out infinite alternate;
-        }
-        .wave:nth-child(2) { animation-delay: 0.15s; }
-        .wave:nth-child(3) { animation-delay: 0.3s; }
-        .wave:nth-child(4) { animation-delay: 0.45s; }
-        .wave:nth-child(5) { animation-delay: 0.6s; }
-        
+        .wave { width: 6px; height: 15px; border-radius: 4px; background: linear-gradient(to top, #ff0080, #ff8c00); animation: soundWave 0.8s ease-in-out infinite alternate; }
+        .wave:nth-child(2) { animation-delay: 0.15s; } .wave:nth-child(3) { animation-delay: 0.3s; } .wave:nth-child(4) { animation-delay: 0.45s; } .wave:nth-child(5) { animation-delay: 0.6s; }
         @keyframes soundWave { 0% { height: 10px; } 100% { height: 60px; } }
-        
-        .close-modal {
-            position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 28px; cursor: pointer; color: #8e8ea0;
-        }
+        .close-modal { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 28px; cursor: pointer; color: #8e8ea0; }
     </style>
 </head>
 <body>
 
-    <!-- Slim Sidebar & Overlay -->
+    <!-- Sidebar & Overlay -->
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <button class="close-btn" onclick="toggleSidebar()">✕</button>
-        <div style="margin: 10px 0; text-align: center;">
+        <div style="margin: 10px 0; text-align: center; width: 100%;">
             <div style="width: 50px; height: 50px; background: #10a37f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto; font-weight: bold;">
                 {{ username[0]|upper }}
             </div>
-            <h3 style="margin:0; font-size: 16px;">{{ username }}</h3>
+            <!-- Truncated Email -->
+            <h3 class="user-email" title="{{ username }}">{{ username }}</h3>
             <p style="color:#8e8ea0; font-size:11px; margin-top:5px;">AI Finance Member</p>
         </div>
+        
+        <!-- Language Selector for AI Responses -->
+        <div class="lang-box">
+            <label>AI Reply Language:</label>
+            <select class="lang-select" id="aiLang" onchange="saveLanguage()">
+                <option value="English">English</option>
+                <option value="Bengali">Bengali (বাংলা)</option>
+                <option value="Hindi">Hindi (हिंदी)</option>
+            </select>
+        </div>
+
         <hr style="border:0; border-top:1px solid #f0f0f0; margin-bottom:15px;">
         <a href="#" class="nav-item">👤 Profile</a>
         <a href="#" class="nav-item">⚙️ Settings</a>
@@ -161,7 +124,7 @@
 
     <!-- Main Content -->
     <div class="container">
-        <!-- 3 Small Cards in one row -->
+        <!-- 3 Small Cards -->
         <div class="cards-row">
             <a href="/details/daily" class="card daily">
                 <div class="card-icon">📅</div>
@@ -182,25 +145,23 @@
 
         <!-- AI Chat Box -->
         <div class="chat-history" id="chatBox">
-            <div class="chat-msg ai">✨ হ্যালো! আমি আপনার এআই। হিসাব বলতে স্পিকারে চাপ দিন অথবা টাইপ করে মেসেজ পাঠান।</div>
+            <div class="chat-msg ai">✨ Hello! I am your AI. Tap the microphone or type to manage expenses.</div>
         </div>
     </div>
 
-    <!-- Chat Footer with New Voice and Send Button -->
+    <!-- Chat Footer -->
     <div class="chat-footer">
         <div class="chat-wrapper">
             <input type="text" id="textInput" class="text-input" placeholder="Message AI Finance..." onkeypress="handleEnter(event)">
-            <!-- Voice Button without logo, just animation -->
             <button class="voice-anim-btn" onclick="openVoiceModal()"></button>
-            <!-- Dedicated Send Button -->
             <button class="send-btn" onclick="handleSendClick()">➤</button>
         </div>
     </div>
 
-    <!-- Voice Popup Modal -->
+    <!-- Voice Modal -->
     <div class="voice-modal" id="voiceModal">
         <button class="close-modal" onclick="closeVoiceModal()">✕</button>
-        <div class="listening-text" id="voiceText">AI শুনছে... কথা বলুন</div>
+        <div class="listening-text" id="voiceText">AI is listening... Speak now</div>
         <div class="waves">
             <div class="wave"></div>
             <div class="wave"></div>
@@ -211,13 +172,24 @@
     </div>
 
     <script>
+        // Load saved language on startup
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('aiLang') || 'English';
+            document.getElementById('aiLang').value = savedLang;
+        });
+
+        function saveLanguage() {
+            const lang = document.getElementById('aiLang').value;
+            localStorage.setItem('aiLang', lang);
+        }
+
         // Sidebar Toggle
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        // Number Counter
+        // Counters
         const counters = document.querySelectorAll('.counter');
         counters.forEach(counter => {
             const target = +counter.getAttribute('data-target');
@@ -235,7 +207,7 @@
             if(target > 0) updateCounter();
         });
 
-        // Speech Recognition Setup
+        // Speech Recognition
         const voiceModal = document.getElementById('voiceModal');
         const voiceText = document.getElementById('voiceText');
         const chatBox = document.getElementById('chatBox');
@@ -244,58 +216,39 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if(SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.lang = 'bn-BD';
+            // Automatically adapts to whatever user wants, but we keep it bn-BD to catch exact amounts easily.
+            recognition.lang = 'bn-BD'; 
             recognition.continuous = false;
             
-            recognition.onstart = () => {
-                voiceText.innerText = "শুনছি... কথা বলুন";
-            };
-            
+            recognition.onstart = () => { voiceText.innerText = "Listening... Speak now"; };
             recognition.onresult = (event) => {
                 const speechToText = event.results[0][0].transcript;
-                voiceText.innerText = "প্রসেস করা হচ্ছে...";
+                voiceText.innerText = "Processing...";
                 setTimeout(() => {
                     closeVoiceModal();
                     addChat(speechToText, 'user');
                     sendDataToAI(speechToText);
                 }, 1000);
             };
-
             recognition.onerror = () => {
-                voiceText.innerText = "বুঝতে পারিনি, আবার চেষ্টা করুন";
+                voiceText.innerText = "Couldn't understand, try again";
                 setTimeout(closeVoiceModal, 1500);
             };
         }
 
         function openVoiceModal() {
-            if(recognition) {
-                voiceModal.classList.add('active');
-                recognition.start();
-            } else {
-                alert("আপনার ব্রাউজারে ভয়েস সাপোর্ট নেই।");
-            }
+            if(recognition) { voiceModal.classList.add('active'); recognition.start(); }
+            else { alert("Voice input not supported in your browser."); }
         }
-
-        function closeVoiceModal() {
-            voiceModal.classList.remove('active');
-            if(recognition) recognition.stop();
-        }
+        function closeVoiceModal() { voiceModal.classList.remove('active'); if(recognition) recognition.stop(); }
 
         // Text Chat Logic
-        function handleEnter(e) {
-            if(e.key === 'Enter') handleSendClick();
-        }
-
+        function handleEnter(e) { if(e.key === 'Enter') handleSendClick(); }
         function handleSendClick() {
             const input = document.getElementById('textInput');
             const text = input.value;
-            if(text) {
-                addChat(text, 'user');
-                input.value = '';
-                sendDataToAI(text);
-            }
+            if(text) { addChat(text, 'user'); input.value = ''; sendDataToAI(text); }
         }
-
         function addChat(text, sender) {
             const div = document.createElement('div');
             div.className = `chat-msg ${sender}`;
@@ -303,14 +256,14 @@
             chatBox.appendChild(div);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
-
         function sendDataToAI(text) {
-            addChat("AI প্রসেস করছে...", 'ai');
+            addChat("Processing...", 'ai');
+            const selectedLang = document.getElementById('aiLang').value;
             
             fetch('/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text: text})
+                body: JSON.stringify({text: text, lang: selectedLang})
             })
             .then(res => res.json())
             .then(data => {
