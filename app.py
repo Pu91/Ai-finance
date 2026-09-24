@@ -106,19 +106,21 @@ def api_chat():
     if 'username' not in session: return jsonify({"error": "Unauthorized"}), 401
     
     user_input = request.json.get('text')
-    ai_lang = request.json.get('lang', 'English') # Sidebar theke asbe
+    ai_lang = request.json.get('lang', 'English') 
     
-    # Gemini ke nirdesh: Json er vitorei message translate kore dite
     prompt = f"""
     Extract the expenses from the user's input: "{user_input}"
     Return a JSON object with exactly two keys:
-    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found).
-    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or asking to repeat if nothing was found.
+    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found or if the user is just greeting like 'Hi').
+    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or a friendly greeting/response if they just said "Hi" or something else.
+    Do not use markdown blocks like ```json.
     """
     
     try:
         response = model.generate_content(prompt)
-        ai_data = json.loads(response.text)
+        # Markdown backticks thakle seta remove korar jonno
+        clean_text = response.text.replace('```json', '').replace('```', '').strip()
+        ai_data = json.loads(clean_text)
         
         expenses = ai_data.get("expenses", [])
         reply = ai_data.get("reply_message", "Processed successfully.")
@@ -136,7 +138,9 @@ def api_chat():
                 })
         return jsonify({"reply": reply})
     except Exception as e:
-        return jsonify({"reply": "Error connecting to AI. Please try again."})
+        # Asol error ta return korchi jate apni screen-ei dekhte pan
+        print(f"Chat Error: {e}") 
+        return jsonify({"reply": f"API Error: {str(e)}"})
 
 if __name__ == '__main__':
     app.run(debug=True)
