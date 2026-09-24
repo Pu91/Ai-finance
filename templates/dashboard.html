@@ -1,1 +1,141 @@
 
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI ড্যাশবোর্ড</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding-bottom: 100px; }
+        .header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .container { max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        
+        /* Psychological Color Cards */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .card { padding: 25px; border-radius: 16px; color: white; cursor: pointer; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; display: block; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        
+        .card.daily { background: linear-gradient(135deg, #ff7e5f, #feb47b); } /* Alert/Active */
+        .card.weekly { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #000; } /* Growth/Money */
+        .card.monthly { background: linear-gradient(135deg, #667eea, #764ba2); } /* Trust/Calm */
+        
+        .card h3 { margin: 0; font-size: 16px; opacity: 0.9; }
+        .card .amount { font-size: 32px; font-weight: bold; margin-top: 10px; }
+
+        /* Fixed Chat Footer like Gemini */
+        .chat-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 15px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); display: flex; justify-content: center; }
+        .chat-box { width: 100%; max-width: 760px; display: flex; align-items: center; background: #f1f3f4; border-radius: 30px; padding: 5px 15px; margin: 0 20px; }
+        .chat-input { flex: 1; border: none; background: transparent; padding: 15px 10px; font-size: 16px; outline: none; }
+        
+        /* Voice Animation Button */
+        .mic-btn { background: #1a73e8; color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 20px; transition: 0.3s; position: relative; }
+        .mic-btn.listening { background: #d93025; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(217, 48, 37, 0); } 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0); } }
+
+        .bot-reply { text-align: center; margin-top: 20px; font-size: 16px; color: #1a73e8; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>👋 হ্যালো, {{ username }}</h2>
+        <a href="/logout" style="color: #888; text-decoration: none;">লগআউট</a>
+    </div>
+
+    <div class="container">
+        <div class="card-grid">
+            <a href="/details/daily" class="card daily">
+                <h3>আজকের খরচ</h3>
+                <div class="amount">৳ <span class="counter" data-target="{{ daily }}">0</span></div>
+            </a>
+            <a href="/details/weekly" class="card weekly">
+                <h3>এই সপ্তাহের খরচ</h3>
+                <div class="amount">৳ <span class="counter" data-target="{{ weekly }}">0</span></div>
+            </a>
+            <a href="/details/monthly" class="card monthly">
+                <h3>এই মাসের খরচ</h3>
+                <div class="amount">৳ <span class="counter" data-target="{{ monthly }}">0</span></div>
+            </a>
+        </div>
+        
+        <div id="botResponse" class="bot-reply">AI এজেন্ট রেডি আছে। কথা বলতে মাইকে চাপ দিন।</div>
+    </div>
+
+    <div class="chat-footer">
+        <div class="chat-box">
+            <input type="text" id="chatInput" class="chat-input" placeholder="লিখুন বা মাইকে বলুন (যেমন: ১০০ টাকার চা আর ২০০ টাকার মাছ)...">
+            <button id="micBtn" class="mic-btn">🎙️</button>
+            <button onclick="sendChat()" style="background:transparent; border:none; font-size:24px; cursor:pointer; margin-left:10px;">➤</button>
+        </div>
+    </div>
+
+    <script>
+        // Number Counter Animation
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            const target = +counter.getAttribute('data-target');
+            const duration = 1000; // 1 second
+            const increment = target / (duration / 16);
+            let current = 0;
+            const updateCounter = () => {
+                current += increment;
+                if(current < target) {
+                    counter.innerText = Math.ceil(current);
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    counter.innerText = target;
+                }
+            };
+            if(target > 0) updateCounter();
+        });
+
+        // Web Speech API for Voice Input
+        const micBtn = document.getElementById('micBtn');
+        const chatInput = document.getElementById('chatInput');
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if(SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'bn-BD'; // বাংলা ভাষা
+            
+            micBtn.addEventListener('click', () => {
+                micBtn.classList.add('listening');
+                chatInput.placeholder = "শুনছি...";
+                recognition.start();
+            });
+
+            recognition.onresult = (event) => {
+                chatInput.value = event.results[0][0].transcript;
+                sendChat(); // কথা শেষ হলে অটোমেটিক সেন্ড হবে
+            };
+
+            recognition.onend = () => {
+                micBtn.classList.remove('listening');
+                chatInput.placeholder = "লিখুন বা মাইকে বলুন...";
+            };
+        } else {
+            micBtn.style.display = 'none'; // ব্রাউজার সাপোর্ট না করলে মাইক লুকাবে
+        }
+
+        // Send Text to AI
+        function sendChat() {
+            const text = chatInput.value;
+            if(!text) return;
+            
+            document.getElementById('botResponse').innerText = "AI প্রসেস করছে...";
+            chatInput.value = "";
+            
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('botResponse').innerText = "🤖 " + data.reply;
+                setTimeout(() => location.reload(), 2000); // 2 সেকেন্ড পর পেজ রিফ্রেশ করে টোটাল আপডেট করবে
+            });
+        }
+    </script>
+</body>
+</html>
