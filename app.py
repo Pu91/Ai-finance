@@ -127,7 +127,7 @@ def api_chat():
                     "content": prompt
                 }
             ],
-            model="llama-3.1-8b-instant",
+           model="llama-3.3-70b-versatile"
             response_format={"type": "json_object"}
         )
         
