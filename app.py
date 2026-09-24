@@ -14,7 +14,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     # JSON format mandatory
-    model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+    model = genai.GenerativeModel('gemini-pro', generation_config={"response_mime_type": "application/json"})
 
 if not firebase_admin._apps:
     cred = credentials.Certificate("firebase-key.json")
