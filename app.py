@@ -13,7 +13,7 @@ app.secret_key = "super_secret_finance_key"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    # জেমিনিকে বাধ্য করা হচ্ছে শুধু JSON আউটপুট দেওয়ার জন্য
+    # JSON format mandatory
     model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
 
 if not firebase_admin._apps:
@@ -32,14 +32,12 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email') # Username এর বদলে Email
+    email = request.form.get('email')
     password = request.form.get('password')
     user = db.collection("users").document(email).get()
-    
     if user.exists and user.to_dict().get("password") == hash_pass(password):
-        session['username'] = email # সেশনে ইমেইল সেভ থাকবে
+        session['username'] = email
         return redirect(url_for('dashboard'))
-    
     flash("Invalid email or password.")
     return redirect(url_for('home'))
 
@@ -47,7 +45,6 @@ def login():
 def register():
     email = request.form.get('email')
     password = request.form.get('password')
-    
     if db.collection("users").document(email).get().exists:
         flash("Account already exists with this email!")
     else:
@@ -63,31 +60,21 @@ def logout():
 @app.route('/dashboard')
 def dashboard():
     if 'username' not in session: return redirect(url_for('home'))
-    
-    # পাইথনে আজকের, এই সপ্তাহের এবং এই মাসের হিসাব বের করা
     now = datetime.datetime.now()
     expenses_ref = db.collection("expenses").where("username", "==", session['username']).stream()
     
     daily_total, weekly_total, monthly_total = 0, 0, 0
-    
     for exp in expenses_ref:
         data = exp.to_dict()
         exp_date = data.get("timestamp")
         if not exp_date: continue
-        
-        # টাইমজোন ঠিক করা
         exp_date = exp_date.replace(tzinfo=None)
         amt = float(data.get("amount", 0))
-        
         if exp_date.date() == now.date(): daily_total += amt
         if exp_date.isocalendar()[1] == now.isocalendar()[1] and exp_date.year == now.year: weekly_total += amt
         if exp_date.month == now.month and exp_date.year == now.year: monthly_total += amt
 
-    return render_template('dashboard.html', 
-                           username=session['username'], 
-                           daily=daily_total, 
-                           weekly=weekly_total, 
-                           monthly=monthly_total)
+    return render_template('dashboard.html', username=session['username'], daily=daily_total, weekly=weekly_total, monthly=monthly_total)
 
 @app.route('/details/<period>')
 def details(period):
@@ -117,26 +104,26 @@ def details(period):
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
     if 'username' not in session: return jsonify({"error": "Unauthorized"}), 401
-    user_input = request.json.get('text')
     
+    user_input = request.json.get('text')
+    ai_lang = request.json.get('lang', 'English') # Sidebar theke asbe
+    
+    # Gemini ke nirdesh: Json er vitorei message translate kore dite
     prompt = f"""
-    ইউজার সাধারণ বাংলায় কথা বলছে। তার কথা থেকে খরচের খাত এবং টাকার পরিমাণ বের করো। 
-    একাধিক খরচ থাকলে একাধিক অবজেক্ট বানাবে।
-    ইউজারের কথা: "{user_input}"
-    অবশ্যই নিচের JSON ফরম্যাটে উত্তর দেবে:
-    [
-      {{"category": "খাত ১", "amount": 100}},
-      {{"category": "খাত ২", "amount": 200}}
-    ]
-    যদি কোনো খরচ না থাকে, তবে খালি লিস্ট [] দেবে।
+    Extract the expenses from the user's input: "{user_input}"
+    Return a JSON object with exactly two keys:
+    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found).
+    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or asking to repeat if nothing was found.
     """
     
     try:
         response = model.generate_content(prompt)
-        ai_data = json.loads(response.text) # JSON পার্স করা
+        ai_data = json.loads(response.text)
         
-        saved_items = []
-        for item in ai_data:
+        expenses = ai_data.get("expenses", [])
+        reply = ai_data.get("reply_message", "Processed successfully.")
+        
+        for item in expenses:
             cat = item.get("category")
             amt = item.get("amount")
             if cat and amt:
@@ -147,16 +134,9 @@ def api_chat():
                     "date_str": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
                     "timestamp": firestore.SERVER_TIMESTAMP
                 })
-                saved_items.append(f"{cat}: ৳{amt}")
-        
-        if saved_items:
-            reply = "আমি সেভ করেছি: " + ", ".join(saved_items)
-        else:
-            reply = "আমি কোনো খরচের হিসাব বুঝতে পারিনি। আপনি কি আবার বলবেন?"
-            
         return jsonify({"reply": reply})
     except Exception as e:
-        return jsonify({"reply": "দুঃখিত, সার্ভারে সমস্যা হয়েছে।"})
+        return jsonify({"reply": "Error connecting to AI. Please try again."})
 
 if __name__ == '__main__':
     app.run(debug=True)
