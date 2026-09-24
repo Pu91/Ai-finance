@@ -32,24 +32,27 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form.get('username')
+    email = request.form.get('email') # Username এর বদলে Email
     password = request.form.get('password')
-    user = db.collection("users").document(username).get()
+    user = db.collection("users").document(email).get()
+    
     if user.exists and user.to_dict().get("password") == hash_pass(password):
-        session['username'] = username
+        session['username'] = email # সেশনে ইমেইল সেভ থাকবে
         return redirect(url_for('dashboard'))
-    flash("ইউজারনেম বা পাসওয়ার্ড ভুল!")
+    
+    flash("Invalid email or password.")
     return redirect(url_for('home'))
 
 @app.route('/register', methods=['POST'])
 def register():
-    username = request.form.get('username')
+    email = request.form.get('email')
     password = request.form.get('password')
-    if db.collection("users").document(username).get().exists:
-        flash("এই নাম আগে থেকেই আছে!")
+    
+    if db.collection("users").document(email).get().exists:
+        flash("Account already exists with this email!")
     else:
-        db.collection("users").document(username).set({"password": hash_pass(password)})
-        session['username'] = username
+        db.collection("users").document(email).set({"password": hash_pass(password)})
+        session['username'] = email
     return redirect(url_for('home'))
 
 @app.route('/logout')
