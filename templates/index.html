@@ -1,29 +1,111 @@
-
 <!DOCTYPE html>
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>স্মার্ট হিসাবরক্ষক</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>Smart Hisabrokhok</title>
+    
+    <!-- CSS Design -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center;
+        }
+        .container { max-width: 500px; width: 100%; }
+        .input-section {
+            background: white; padding: 20px;
+            border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%; height: 80px;
+            padding: 10px; border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%; padding: 12px;
+            background-color: #FF4B4B; color: white;
+            border: none; border-radius: 8px;
+            font-size: 16px; cursor: pointer; margin-top: 10px;
+        }
+        .card {
+            background: white; padding: 15px;
+            border-radius: 12px; margin-bottom: 12px;
+            border-left: 5px solid #FF4B4B;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .cat { font-size: 18px; font-weight: bold; }
+        .amt { font-size: 22px; font-weight: bold; color: #FF4B4B; float: right; }
+        .date { font-size: 12px; color: #888; margin-bottom: 8px; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h2>💸 স্মার্ট হিসাবরক্ষক</h2>
-        <p>আপনার ব্যক্তিগত AI ফাইন্যান্স ম্যানেজার</p>
+        <h2>💸 Smart Hisabrokhok</h2>
+        <p>Apnar byaktigoto AI Finance Manager</p>
         
         <div class="input-section">
-            <textarea id="userInput" placeholder="উদাহরণ: আজকে বাজারে গিয়ে ৩০০ টাকার সবজি কিনলাম"></textarea>
-            <button id="saveBtn" onclick="saveExpense()">হিসাব সেভ করুন</button>
+            <textarea id="userInput" placeholder="Udahoron: Ajke bajare giye 300 takar sobji kinlam"></textarea>
+            <button id="saveBtn" onclick="saveExpense()">Hisab Save Korun</button>
             <p id="statusMsg"></p>
         </div>
 
-        <h3>📊 আপনার সর্বশেষ খরচ</h3>
+        <h3>📊 Apnar Shes Khoroch</h3>
         <div id="expenseList">
-            <!-- JavaScript দিয়ে এখানে কার্ডগুলো আসবে -->
+            <!-- JavaScript diye ekhane card gulo asbe -->
         </div>
     </div>
 
-    <script src="/static/script.js"></script>
+    <!-- JavaScript Actions -->
+    <script>
+        // Page load holei purono hisab dekhabe
+        window.onload = loadExpenses;
+
+        function saveExpense() {
+            let text = document.getElementById('userInput').value;
+            let status = document.getElementById('statusMsg');
+            
+            if(!text) { status.innerText = "Doya kore kichu likhun!"; return; }
+            
+            status.innerText = "AI apnar hisab process korche...";
+            
+            fetch('/api/save_expense', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text: text})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    status.innerText = "✅ Sofolbhabe save hoyeche!";
+                    document.getElementById('userInput').value = ""; // Box clear
+                    loadExpenses(); // List refresh
+                } else {
+                    status.innerText = "⚠️ Somossa hoyeche. Abar chesta korun.";
+                }
+            });
+        }
+
+        function loadExpenses() {
+            fetch('/api/get_expenses')
+            .then(res => res.json())
+            .then(data => {
+                let list = document.getElementById('expenseList');
+                list.innerHTML = "";
+                data.forEach(exp => {
+                    list.innerHTML += `
+                    <div class="card">
+                        <div class="date">📅 ${exp.date}</div>
+                        <span class="cat">🛍️ ${exp.category}</span>
+                        <span class="amt">৳ ${exp.amount}</span>
+                    </div>`;
+                });
+            });
+        }
+    </script>
 </body>
 </html>
