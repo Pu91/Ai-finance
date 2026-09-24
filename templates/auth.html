@@ -1,1 +1,51 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>এআই ফাইন্যান্স | লগিন</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .auth-box { background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 350px; text-align: center; }
+        h2 { color: #202124; font-size: 24px; margin-bottom: 30px; }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; background: #f1f3f4; transition: 0.3s; }
+        input:focus { outline: none; border-color: #1a73e8; background: white; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+        .btn { width: 100%; padding: 14px; background-color: #1a73e8; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn:hover { background-color: #1557b0; }
+        .toggle-text { margin-top: 20px; font-size: 14px; color: #5f6368; cursor: pointer; }
+        .toggle-text span { color: #1a73e8; font-weight: bold; }
+        .flash { color: #d93025; margin-bottom: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="auth-box">
+        <h2 id="formTitle">স্বাগতম ফিরে এসেছেন</h2>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <form id="authForm" action="/login" method="POST">
+            <input type="text" name="username" placeholder="ইউজারনেম" required>
+            <input type="password" name="password" placeholder="পাসওয়ার্ড" required>
+            <button type="submit" class="btn" id="submitBtn">লগিন করুন</button>
+        </form>
+        
+        <div class="toggle-text" onclick="toggleForm()">অ্যাকাউন্ট নেই? <span>নতুন তৈরি করুন</span></div>
+    </div>
+
+    <script>
+        let isLogin = true;
+        function toggleForm() {
+            isLogin = !isLogin;
+            document.getElementById('formTitle').innerText = isLogin ? "স্বাগতম ফিরে এসেছেন" : "নতুন অ্যাকাউন্ট খুলুন";
+            document.getElementById('submitBtn').innerText = isLogin ? "লগিন করুন" : "রেজিস্টার করুন";
+            document.getElementById('authForm').action = isLogin ? "/login" : "/register";
+            document.querySelector('.toggle-text').innerHTML = isLogin ? "অ্যাকাউন্ট নেই? <span>নতুন তৈরি করুন</span>" : "আগে থেকেই অ্যাকাউন্ট আছে? <span>লগিন করুন</span>";
+        }
+    </script>
+</body>
+</html>
 
