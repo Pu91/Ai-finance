@@ -10,7 +10,7 @@ from groq import Groq
 app = Flask(__name__)
 app.secret_key = "super_secret_finance_key"
 
-# Groq API সেটআপ
+# Groq API Setup
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 if GROQ_API_KEY:
     client = Groq(api_key=GROQ_API_KEY)
@@ -127,7 +127,7 @@ def api_chat():
                     "content": prompt
                 }
             ],
-           model="llama-3.3-70b-versatile"
+            model="llama-3.3-70b-versatile",
             response_format={"type": "json_object"}
         )
         
