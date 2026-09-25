@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Finance | {{ period }} Statement</title>
+    <!-- Excel & PDF Download Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -18,7 +21,7 @@
             border-bottom: 1px solid #e2e8f0;
         }
         .back-btn {
-            text-decoration: none; color: #1e293b; font-size: 16px; font-weight: 600;
+            text-decoration: none; color: #1e293b; font-size: 15px; font-weight: 600;
             display: flex; align-items: center; gap: 6px; background: #f1f5f9;
             padding: 8px 14px; border-radius: 20px; transition: 0.2s;
         }
@@ -52,7 +55,7 @@
         .income-text { color: #4ade80; }
         .expense-text { color: #fb7185; }
 
-        /* Search & Filter Section */
+        /* Search, Filter & Download Controls */
         .controls-box {
             display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;
         }
@@ -77,6 +80,20 @@
             cursor: pointer; transition: 0.2s;
         }
         .tab-btn.active { background: #0f172a; color: white; border-color: #0f172a; }
+
+        /* Download Buttons Row */
+        .export-row {
+            display: flex; gap: 10px; margin-bottom: 15px;
+        }
+        .export-btn {
+            flex: 1; padding: 11px 14px; border-radius: 12px; border: none;
+            font-size: 13px; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: transform 0.2s, box-shadow 0.2s; color: white;
+        }
+        .export-btn:active { transform: scale(0.97); }
+        .btn-excel { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25); }
+        .btn-pdf { background: linear-gradient(135deg, #e11d48, #be123c); box-shadow: 0 4px 12px rgba(225, 29, 72, 0.25); }
 
         /* Balance Sheet / Statement Table */
         .sheet-card {
@@ -104,7 +121,7 @@
         tr:last-child td { border-bottom: none; }
         tr:hover { background-color: #f8fafc; }
 
-        .cat-name { font-weight: 700; color: #1e293b; display: block; margin-bottom: 3px; }
+        .cat-name { font-weight: 700; color: #1e293b; display: block; margin-bottom: 3px; font-size: 15px; }
         .date-sub { font-size: 11px; color: #94a3b8; }
 
         .badge {
@@ -128,103 +145,137 @@
     <!-- Top Header -->
     <div class="header">
         <a href="/dashboard" class="back-btn">← Back</a>
-        <h2 class="header-title">{{ period }} Balance Sheet</h2>
+        <h2 class="header-title">{{ period }} Statement</h2>
         <div style="width: 65px;"></div>
     </div>
 
     <div class="container">
-        <!-- Net Balance & Account Summary Card -->
-        <div class="balance-card">
-            <p class="balance-label">{{ period }} Net Balance</p>
-            <h1 class="net-balance">
-                <span>₹</span>
-                <span>{{ balance|int }}</span>
-            </h1>
+        <!-- Printable Area for PDF Export -->
+        <div id="printableArea">
+            <!-- Net Balance & Account Summary Card -->
+            <div class="balance-card">
+                <p class="balance-label">{{ period }} Net Balance</p>
+                <h1 class="net-balance">
+                    <span>₹</span>
+                    <span id="netBalanceVal">{{ balance|int }}</span>
+                </h1>
 
-            <div class="summary-row">
-                <div class="summary-box">
-                    <div class="summary-icon income-icon">↓</div>
-                    <div class="summary-info">
-                        <p>Total Income (Credit)</p>
-                        <h4 class="income-text">+ ₹{{ total_income|int }}</h4>
+                <div class="summary-row">
+                    <div class="summary-box">
+                        <div class="summary-icon income-icon">↓</div>
+                        <div class="summary-info">
+                            <p>Total Income (Credit)</p>
+                            <h4 class="income-text">+ ₹<span id="incVal">{{ total_income|int }}</span></h4>
+                        </div>
+                    </div>
+                    <div class="summary-box">
+                        <div class="summary-icon expense-icon">↑</div>
+                        <div class="summary-info">
+                            <p>Total Expense (Debit)</p>
+                            <h4 class="expense-text">- ₹<span id="expVal">{{ total_expense|int }}</span></h4>
+                        </div>
                     </div>
                 </div>
-                <div class="summary-box">
-                    <div class="summary-icon expense-icon">↑</div>
-                    <div class="summary-info">
-                        <p>Total Expense (Debit)</p>
-                        <h4 class="expense-text">- ₹{{ total_expense|int }}</h4>
+            </div>
+
+            <!-- Search Bar & Filter Tabs (Hidden during PDF print) -->
+            <div class="controls-box" data-html2canvas-ignore="true">
+                <div class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search category, item, or date..." onkeyup="filterTransactions()">
+                </div>
+                <div class="filter-tabs">
+                    <button class="tab-btn active" onclick="setFilter('all', this)">All Entries</button>
+                    <button class="tab-btn" onclick="setFilter('income', this)">Income (+)</button>
+                    <button class="tab-btn" onclick="setFilter('expense', this)">Expense (-)</button>
+                </div>
+            </div>
+
+            <!-- Download Excel & PDF Buttons -->
+            <div class="export-row" data-html2canvas-ignore="true">
+                <button class="export-btn btn-excel" onclick="downloadExcel()">📊 Download Excel (.xlsx)</button>
+                <button class="export-btn btn-pdf" onclick="downloadPDF()">📄 Download PDF (.pdf)</button>
+            </div>
+
+            <!-- Balance Sheet Statement Table -->
+            <div class="sheet-card">
+                <div class="sheet-header">
+                    <h3>Account Ledger</h3>
+                    <span class="record-count" id="recordCount">{{ expenses|length }} Transactions</span>
+                </div>
+
+                <div class="table-responsive">
+                    {% if expenses %}
+                    <table id="ledgerTable">
+                        <thead>
+                            <tr>
+                                <th>Particulars & Date</th>
+                                <th>Type</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in expenses %}
+                            {% set tx_type = item.get('type', 'expense') %}
+                            <tr class="tx-row" data-type="{{ tx_type }}" data-amount="{{ item.amount|int }}" data-date="{{ item.date_str }}">
+                                <td>
+                                    <!-- Expense Name dynamically adapts to selected language -->
+                                    <span class="cat-name"
+                                          data-default="{{ item.category }}"
+                                          data-en="{{ item.get('category_en', item.category) }}"
+                                          data-bn="{{ item.get('category_bn', item.category) }}"
+                                          data-hi="{{ item.get('category_hi', item.category) }}">
+                                        {{ item.category }}
+                                    </span>
+                                    <span class="date-sub">{{ item.date_str }}</span>
+                                </td>
+                                <td>
+                                    {% if tx_type == 'income' %}
+                                        <span class="badge badge-credit">Credit (In)</span>
+                                    {% else %}
+                                        <span class="badge badge-debit">Debit (Out)</span>
+                                    {% endif %}
+                                </td>
+                                <td class="amt-cell {% if tx_type == 'income' %}amt-credit{% else %}amt-debit{% endif %}">
+                                    {% if tx_type == 'income' %}+{% else %}-{% endif %} ₹{{ item.amount|int }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div id="noMatchMsg" class="empty-state" style="display: none;">
+                        No matching transactions found.
                     </div>
+                    {% else %}
+                    <div class="empty-state">
+                        📭 No transactions recorded for this period yet.
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-        </div>
-
-        <!-- Search Bar & Filter Tabs -->
-        <div class="controls-box">
-            <div class="search-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search category, item, or date..." onkeyup="filterTransactions()">
-            </div>
-            <div class="filter-tabs">
-                <button class="tab-btn active" onclick="setFilter('all', this)">All Entries</button>
-                <button class="tab-btn" onclick="setFilter('income', this)">Income (+)</button>
-                <button class="tab-btn" onclick="setFilter('expense', this)">Expense (-)</button>
-            </div>
-        </div>
-
-        <!-- Balance Sheet Statement Table -->
-        <div class="sheet-card">
-            <div class="sheet-header">
-                <h3>Account Ledger</h3>
-                <span class="record-count" id="recordCount">{{ expenses|length }} Transactions</span>
-            </div>
-
-            <div class="table-responsive">
-                {% if expenses %}
-                <table id="ledgerTable">
-                    <thead>
-                        <tr>
-                            <th>Particulars & Date</th>
-                            <th>Type</th>
-                            <th style="text-align: right;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in expenses %}
-                        {% set tx_type = item.get('type', 'expense') %}
-                        <tr class="tx-row" data-type="{{ tx_type }}">
-                            <td>
-                                <span class="cat-name">{{ item.category }}</span>
-                                <span class="date-sub">{{ item.date_str }}</span>
-                            </td>
-                            <td>
-                                {% if tx_type == 'income' %}
-                                    <span class="badge badge-credit">Credit (In)</span>
-                                {% else %}
-                                    <span class="badge badge-debit">Debit (Out)</span>
-                                {% endif %}
-                            </td>
-                            <td class="amt-cell {% if tx_type == 'income' %}amt-credit{% else %}amt-debit{% endif %}">
-                                {% if tx_type == 'income' %}+{% else %}-{% endif %} ₹{{ item.amount|int }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <div id="noMatchMsg" class="empty-state" style="display: none;">
-                    No matching transactions found.
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    📭 No transactions recorded for this period yet.
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
 
     <script>
         let currentFilter = 'all';
+
+        // Apply selected language from Sidebar ONLY to Expense/Income Category names
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('aiLang') || 'English';
+            const catElements = document.querySelectorAll('.cat-name');
+
+            catElements.forEach(el => {
+                if (savedLang === 'Bengali' && el.getAttribute('data-bn')) {
+                    el.innerText = el.getAttribute('data-bn');
+                } else if (savedLang === 'Hindi' && el.getAttribute('data-hi')) {
+                    el.innerText = el.getAttribute('data-hi');
+                } else if (savedLang === 'English' && el.getAttribute('data-en')) {
+                    el.innerText = el.getAttribute('data-en');
+                } else {
+                    el.innerText = el.getAttribute('data-default');
+                }
+            });
+        });
 
         function setFilter(type, btnElement) {
             currentFilter = type;
@@ -260,6 +311,57 @@
             if (noMatch) {
                 noMatch.style.display = (visibleCount === 0 && rows.length > 0) ? 'block' : 'none';
             }
+        }
+
+        // Download Excel (.xlsx) with Category names in the selected language
+        function downloadExcel() {
+            const rows = document.querySelectorAll('.tx-row');
+            if (rows.length === 0) {
+                alert("No transactions to export!");
+                return;
+            }
+
+            const data = [
+                ["AI Finance - {{ period }} Balance Sheet"],
+                ["Net Balance", "Total Income (+)", "Total Expense (-)"],
+                [
+                    Number(document.getElementById('netBalanceVal').innerText),
+                    Number(document.getElementById('incVal').innerText),
+                    Number(document.getElementById('expVal').innerText)
+                ],
+                [],
+                ["Date & Time", "Particulars (Category)", "Type", "Amount"]
+            ];
+
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const catName = row.querySelector('.cat-name').innerText.trim();
+                    const dateStr = row.getAttribute('data-date');
+                    const txType = row.getAttribute('data-type') === 'income' ? 'Credit (Income)' : 'Debit (Expense)';
+                    const amount = Number(row.getAttribute('data-amount'));
+                    data.push([dateStr, catName, txType, amount]);
+                }
+            });
+
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            worksheet['!cols'] = [{ wch: 22 }, { wch: 28 }, { wch: 18 }, { wch: 14 }];
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "{{ period }}_Statement");
+            XLSX.writeFile(workbook, "AI_Finance_{{ period }}_Statement.xlsx");
+        }
+
+        // Download PDF (.pdf) supporting Bengali, Hindi & English fonts seamlessly
+        function downloadPDF() {
+            const element = document.getElementById('printableArea');
+            const opt = {
+                margin: 0.4,
+                filename: 'AI_Finance_{{ period }}_Statement.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
