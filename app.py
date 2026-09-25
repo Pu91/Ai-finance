@@ -23,7 +23,6 @@ db = firestore.client()
 def hash_pass(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
-# রিয়েল-টাইমে মোট খরচ হিসাব করার ফাংশন
 def get_totals(username):
     now = datetime.datetime.now()
     expenses_ref = db.collection("expenses").where("username", "==", username).stream()
@@ -121,7 +120,6 @@ def details(period):
             except (ValueError, TypeError):
                 pass
 
-    # নতুন খরচগুলো সবার উপরে দেখানোর জন্য সর্টিং
     filtered_exp.sort(key=lambda x: x['_sort_time'], reverse=True)
             
     return render_template('details.html', period=period.capitalize(), expenses=filtered_exp, total=total)
@@ -131,20 +129,30 @@ def api_chat():
     if 'username' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    user_input = request.json.get('text')
-    ai_lang = request.json.get('lang', 'English') 
+    user_input = request.json.get('text', '')
+    ai_lang = request.json.get('lang', 'English')
+    
+    # ভাষা অনুযায়ী কড়া নির্দেশ সেট করা হচ্ছে
+    if ai_lang == 'Bengali':
+        lang_instruction = "You MUST write 'reply_message' strictly in Bengali language using Bengali script (বাংলা হরফে), regardless of the language the user used."
+    elif ai_lang == 'Hindi':
+        lang_instruction = "You MUST write 'reply_message' strictly in Hindi language using Devanagari script (हिंदी में), regardless of the language the user used."
+    else:
+        lang_instruction = "You MUST write 'reply_message' strictly in English language, regardless of the language the user used."
     
     prompt = f"""
-    The user is talking to you: "{user_input}"
+    User message: "{user_input}"
+    Selected Reply Language: {ai_lang}
     
-    Instructions:
-    1. If the user mentions any expenses, extract them into the "expenses" list with "category" and numeric "amount". If it is general conversation without any expense, keep "expenses" as an empty list [].
-    2. Write a natural, friendly conversational reply in {ai_lang} language inside "reply_message". Talk like a smart human finance assistant. Keep it short and clear so it sounds great on voice output.
+    Task:
+    1. If the user mentions any expense, extract it into "expenses" array as objects with "category" and numeric "amount". If no expense is mentioned, return an empty array [].
+    2. {lang_instruction}
+    3. Make "reply_message" natural, friendly, and conversational like a personal finance assistant.
     
-    Return ONLY a valid JSON object with these two keys:
+    Return ONLY valid JSON in this exact format:
     {{
       "expenses": [{{"category": "Fish", "amount": 500}}],
-      "reply_message": "Your conversational response in {ai_lang}"
+      "reply_message": "Your reply strictly in {ai_lang}"
     }}
     """
     
@@ -153,7 +161,7 @@ def api_chat():
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a smart, friendly conversational AI Finance Agent. You always output pure JSON."
+                    "content": f"You are a smart conversational AI Finance Agent. {lang_instruction} Output pure JSON only."
                 },
                 {
                     "role": "user",
@@ -167,7 +175,7 @@ def api_chat():
         ai_data = json.loads(chat_completion.choices[0].message.content)
         
         expenses = ai_data.get("expenses", [])
-        reply = ai_data.get("reply_message", "Processed successfully.")
+        reply = ai_data.get("reply_message", "Done!")
         
         for item in expenses:
             cat = item.get("category")
@@ -185,7 +193,6 @@ def api_chat():
                 except (ValueError, TypeError):
                     pass
                     
-        # পেজ রিলোড না করেই ড্যাশবোর্ডের কার্ড আপডেট করার জন্য নতুন টোটাল পাঠানো হচ্ছে
         daily, weekly, monthly = get_totals(session['username'])
         
         return jsonify({
