@@ -13,18 +13,16 @@
         .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2d333a; margin-right: 15px; }
         .header-title { font-size: 18px; font-weight: 700; margin: 0; }
         
-        /* Sidebar (Fixed width & Truncated Text) */
+        /* Sidebar */
         .sidebar { position: fixed; top: 0; left: -240px; width: 240px; height: 100%; background: white; box-shadow: 4px 0 15px rgba(0,0,0,0.05); transition: 0.3s ease; z-index: 200; padding: 20px; display: flex; flex-direction: column; box-sizing: border-box; }
         .sidebar.active { left: 0; }
         .close-btn { align-self: flex-end; background: none; border: none; font-size: 22px; cursor: pointer; color: #8e8ea0; }
-        
-        /* Truncate Email class */
-        .user-email { margin: 0; font-size: 15px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; text-align: center; }
+        .user-email { margin: 0; font-size: 14px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; text-align: center; font-weight: 600; }
         
         /* Language Selector */
         .lang-box { margin: 20px 0; background: #f9f9f9; padding: 12px; border-radius: 12px; border: 1px solid #eee; }
         .lang-box label { font-size: 12px; color: #8e8ea0; font-weight: 600; display: block; margin-bottom: 5px; }
-        .lang-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; outline: none; background: white; cursor: pointer; }
+        .lang-select { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; outline: none; background: white; cursor: pointer; font-weight: 600; color: #2d333a; }
         
         .nav-item { padding: 12px 0; font-size: 16px; color: #2d333a; text-decoration: none; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 150; display: none; opacity: 0; transition: 0.3s; }
@@ -33,14 +31,18 @@
         /* Main Container & Cards */
         .container { max-width: 900px; margin: 15px auto; padding: 0 15px; }
         .cards-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px; }
-        .card { background: white; padding: 12px 8px; border-radius: 14px; text-decoration: none; color: #2d333a; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; transition: transform 0.2s, box-shadow 0.2s; }
+        .card { background: white; padding: 14px 8px; border-radius: 16px; text-decoration: none; color: #2d333a; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
         .card-icon { font-size: 18px; margin-bottom: 8px; display: inline-block; padding: 6px; border-radius: 10px; }
         .card.daily .card-icon { background: #fff0ed; color: #ff6b6b; }
         .card.weekly .card-icon { background: #e8f5e9; color: #4caf50; }
         .card.monthly .card-icon { background: #e3f2fd; color: #2196f3; }
-        .card-title { font-size: 11px; font-weight: 600; color: #8e8ea0; margin: 0 0 5px 0; }
-        .card-amount { font-size: 16px; font-weight: 800; margin: 0; }
+        .card-title { font-size: 11px; font-weight: 600; color: #8e8ea0; margin: 0 0 6px 0; }
+        
+        /* Currency Icon & Amount Style */
+        .card-amount { font-size: 16px; font-weight: 800; margin: 0; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .currency-badge { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 50%; flex-shrink: 0; box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3); }
+        .currency-badge svg { width: 12px; height: 12px; fill: currentColor; }
 
         /* Chat Box */
         .chat-history { background: white; border-radius: 16px; padding: 15px; min-height: 260px; max-height: 55vh; overflow-y: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border: 1px solid #f0f0f0; margin-bottom: 15px; display: flex; flex-direction: column; }
@@ -101,7 +103,6 @@
             <div style="width: 50px; height: 50px; background: #10a37f; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin: 0 auto 10px auto; font-weight: bold;">
                 {{ username[0]|upper }}
             </div>
-            <!-- Truncated Email -->
             <h3 class="user-email" title="{{ username }}">{{ username }}</h3>
             <p style="color:#8e8ea0; font-size:11px; margin-top:5px;">AI Finance Member</p>
         </div>
@@ -130,28 +131,43 @@
 
     <!-- Main Content -->
     <div class="container">
-        <!-- 3 Small Cards -->
+        <!-- 3 Small Cards with Currency Coin Icon -->
         <div class="cards-row">
             <a href="/details/daily" class="card daily">
                 <div class="card-icon">📅</div>
                 <p class="card-title">Today</p>
-                <p class="card-amount">৳ <span id="dailyAmt" class="counter" data-target="{{ daily }}">0</span></p>
+                <p class="card-amount">
+                    <span class="currency-badge">
+                        <svg viewBox="0 0 24 24"><path d="M13.66 7C13.1 5.82 11.9 5 10.5 5H6V3h12v2h-3.26c.48.58.84 1.26 1.05 2H18v2h-2.02c-.25 2.8-2.61 5-5.48 5h-.73l6.73 7h-2.77L7 14v-2h3.5c1.76 0 3.22-1.3 3.46-3H6V7h7.66z"/></svg>
+                    </span>
+                    <span id="dailyAmt" class="counter" data-target="{{ daily }}">0</span>
+                </p>
             </a>
             <a href="/details/weekly" class="card weekly">
                 <div class="card-icon">📊</div>
                 <p class="card-title">Weekly</p>
-                <p class="card-amount">৳ <span id="weeklyAmt" class="counter" data-target="{{ weekly }}">0</span></p>
+                <p class="card-amount">
+                    <span class="currency-badge">
+                        <svg viewBox="0 0 24 24"><path d="M13.66 7C13.1 5.82 11.9 5 10.5 5H6V3h12v2h-3.26c.48.58.84 1.26 1.05 2H18v2h-2.02c-.25 2.8-2.61 5-5.48 5h-.73l6.73 7h-2.77L7 14v-2h3.5c1.76 0 3.22-1.3 3.46-3H6V7h7.66z"/></svg>
+                    </span>
+                    <span id="weeklyAmt" class="counter" data-target="{{ weekly }}">0</span>
+                </p>
             </a>
             <a href="/details/monthly" class="card monthly">
                 <div class="card-icon">💰</div>
                 <p class="card-title">Monthly</p>
-                <p class="card-amount">৳ <span id="monthlyAmt" class="counter" data-target="{{ monthly }}">0</span></p>
+                <p class="card-amount">
+                    <span class="currency-badge">
+                        <svg viewBox="0 0 24 24"><path d="M13.66 7C13.1 5.82 11.9 5 10.5 5H6V3h12v2h-3.26c.48.58.84 1.26 1.05 2H18v2h-2.02c-.25 2.8-2.61 5-5.48 5h-.73l6.73 7h-2.77L7 14v-2h3.5c1.76 0 3.22-1.3 3.46-3H6V7h7.66z"/></svg>
+                    </span>
+                    <span id="monthlyAmt" class="counter" data-target="{{ monthly }}">0</span>
+                </p>
             </a>
         </div>
 
         <!-- AI Chat Box -->
         <div class="chat-history" id="chatBox">
-            <div class="chat-msg ai">✨ Hello! I am your AI Finance Agent. Tap the glowing voice button or type below to chat and manage expenses.</div>
+            <div class="chat-msg ai" id="welcomeMsg">✨ Hello! I am your AI Finance Agent. Tap the glowing voice button or type below to chat and manage expenses.</div>
         </div>
     </div>
 
@@ -183,15 +199,41 @@
     </div>
 
     <script>
+        // Preload voices for mobile browsers
+        let availableVoices = [];
+        if ('speechSynthesis' in window) {
+            const loadVoices = () => { availableVoices = window.speechSynthesis.getVoices(); };
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
         // Load saved language on startup
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('aiLang') || 'English';
             document.getElementById('aiLang').value = savedLang;
+            updateGreetingByLanguage(savedLang, false);
         });
 
         function saveLanguage() {
             const lang = document.getElementById('aiLang').value;
             localStorage.setItem('aiLang', lang);
+            updateGreetingByLanguage(lang, true);
+            toggleSidebar(); // ভাষা সিলেক্ট করলেই সাইডবার বন্ধ হয়ে যাবে
+        }
+
+        function updateGreetingByLanguage(lang, addNewMessage) {
+            let msg = "✨ Hello! I am your AI Finance Agent. Tap the glowing voice button or type below to chat in English.";
+            if (lang === 'Bengali') {
+                msg = "✨ হ্যালো! আমি আপনার এআই ফাইন্যান্স এজেন্ট। এখন থেকে আমি আপনার সাথে বাংলায় কথা বলবো ও হিসাব রাখবো।";
+            } else if (lang === 'Hindi') {
+                msg = "✨ नमस्ते! मैं आपका एआई फाइनेंस एजेंट हूँ। अब से मैं आपसे हिंदी में बात करूँगा और हिसाब रखूँगा।";
+            }
+            if (addNewMessage) {
+                addChat(msg, 'ai');
+            } else {
+                const welcomeEl = document.getElementById('welcomeMsg');
+                if (welcomeEl) welcomeEl.innerText = msg;
+            }
         }
 
         // Sidebar Toggle
@@ -230,7 +272,7 @@
 
         function getLangCode() {
             const lang = document.getElementById('aiLang').value;
-            if (lang === 'Bengali') return 'bn-BD';
+            if (lang === 'Bengali') return 'bn-IN';
             if (lang === 'Hindi') return 'hi-IN';
             return 'en-US';
         }
@@ -239,7 +281,7 @@
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.continuous = false;
-            recognition.interimResults = true; // Shows live words as you speak
+            recognition.interimResults = true;
             
             recognition.onstart = () => {
                 voiceStatus.innerText = "LISTENING...";
@@ -251,7 +293,6 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
                 }
-                // Show live what the user is saying
                 voiceText.innerText = `"${transcript}"`;
 
                 if (event.results[0].isFinal) {
@@ -292,12 +333,31 @@
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         }
 
-        // Text-to-Speech (AI speaks back to you)
+        // Text-to-Speech (Matches exact selected language voice)
         function speakReply(text) {
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
+            
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = getLangCode();
+            const selectedLang = document.getElementById('aiLang').value;
+            
+            if (availableVoices.length === 0) {
+                availableVoices = window.speechSynthesis.getVoices();
+            }
+
+            let targetVoice = null;
+            if (selectedLang === 'Bengali') {
+                utterance.lang = 'bn-IN';
+                targetVoice = availableVoices.find(v => v.lang.includes('bn'));
+            } else if (selectedLang === 'Hindi') {
+                utterance.lang = 'hi-IN';
+                targetVoice = availableVoices.find(v => v.lang.includes('hi'));
+            } else {
+                utterance.lang = 'en-US';
+                targetVoice = availableVoices.find(v => v.lang.includes('en'));
+            }
+
+            if (targetVoice) utterance.voice = targetVoice;
             
             utterance.onstart = () => {
                 voiceStatus.innerText = "AI SPEAKING...";
@@ -338,7 +398,7 @@
             chatBox.appendChild(tempDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             
-            const selectedLang = document.getElementById('aiLang').value;
+            const selectedLang = document.getElementById('aiLang').value || localStorage.getItem('aiLang') || 'English';
             
             fetch('/api/chat', {
                 method: 'POST',
@@ -350,7 +410,7 @@
                 chatBox.removeChild(tempDiv);
                 addChat(data.reply, 'ai');
                 
-                // Real-time update of Today, Weekly, Monthly cards WITHOUT page reload
+                // Real-time update of cards WITHOUT page reload
                 if (data.daily !== undefined) {
                     document.getElementById('dailyAmt').innerText = Math.round(data.daily);
                     document.getElementById('weeklyAmt').innerText = Math.round(data.weekly);
