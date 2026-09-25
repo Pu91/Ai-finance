@@ -132,7 +132,6 @@ def api_chat():
     user_input = request.json.get('text', '')
     ai_lang = request.json.get('lang', 'English')
     
-    # ভাষা অনুযায়ী কড়া নির্দেশ সেট করা হচ্ছে
     if ai_lang == 'Bengali':
         lang_instruction = "You MUST write 'reply_message' strictly in Bengali language using Bengali script (বাংলা হরফে), regardless of the language the user used."
     elif ai_lang == 'Hindi':
@@ -147,12 +146,12 @@ def api_chat():
     Task:
     1. If the user mentions any expense, extract it into "expenses" array as objects with "category" and numeric "amount". If no expense is mentioned, return an empty array [].
     2. {lang_instruction}
-    3. Make "reply_message" natural, friendly, and conversational like a personal finance assistant.
+    3. Make "reply_message" a live, interactive two-way voice conversation. Answer the user warmly and end with a short, natural follow-up question (for example: asking if they have more expenses today, or asking about their budget/day) so the conversation keeps flowing. Keep it concise (1-2 sentences).
     
     Return ONLY valid JSON in this exact format:
     {{
       "expenses": [{{"category": "Fish", "amount": 500}}],
-      "reply_message": "Your reply strictly in {ai_lang}"
+      "reply_message": "Your interactive reply + follow-up question strictly in {ai_lang}"
     }}
     """
     
@@ -161,7 +160,7 @@ def api_chat():
             messages=[
                 {
                     "role": "system",
-                    "content": f"You are a smart conversational AI Finance Agent. {lang_instruction} Output pure JSON only."
+                    "content": f"You are a live conversational AI Finance Agent. {lang_instruction} Output pure JSON only."
                 },
                 {
                     "role": "user",
@@ -204,6 +203,7 @@ def api_chat():
     except Exception as e:
         print(f"Groq Error: {e}")
         return jsonify({"reply": f"API Error: {str(e)}"})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
