@@ -35,7 +35,6 @@ def get_totals(username):
             continue
         exp_date = exp_date.replace(tzinfo=None)
         
-        # ড্যাশবোর্ডের ৩টি কার্ডে মূলত মোট খরচ (Expense) দেখানো হবে
         tx_type = data.get("type", "expense")
         if tx_type != "expense":
             continue
@@ -155,29 +154,41 @@ def api_chat():
     ai_lang = request.json.get('lang', 'English')
     
     if ai_lang == 'Bengali':
-        lang_instruction = "You MUST write 'reply_message' strictly in Bengali language using Bengali script (বাংলা হরফে), regardless of the language the user used."
+        lang_instruction = "You MUST write 'reply_message' and 'category' strictly in Bengali script (বাংলা হরফে)."
     elif ai_lang == 'Hindi':
-        lang_instruction = "You MUST write 'reply_message' strictly in Hindi language using Devanagari script (हिंदी में), regardless of the language the user used."
+        lang_instruction = "You MUST write 'reply_message' and 'category' strictly in Hindi Devanagari script (हिंदी में)."
     else:
-        lang_instruction = "You MUST write 'reply_message' strictly in English language, regardless of the language the user used."
+        lang_instruction = "You MUST write 'reply_message' and 'category' strictly in English."
     
     prompt = f"""
     User message: "{user_input}"
-    Selected Reply Language: {ai_lang}
+    Selected Language: {ai_lang}
     
     Task:
     1. Extract any financial transactions (expenses or income) mentioned by the user into the "transactions" array.
-       Each object must have:
-       - "category": Short title (e.g., "Fish", "Salary", "Groceries", "Freelance")
+       Each object MUST have:
+       - "category": Item/expense name written strictly in {ai_lang}
+       - "category_en": Item/expense name in English (e.g., "Fish")
+       - "category_bn": Item/expense name in Bengali script (e.g., "মাছ")
+       - "category_hi": Item/expense name in Hindi script (e.g., "मछली")
        - "amount": Numeric value only
-       - "type": strictly "income" (if money received/earned/salary/profit) OR "expense" (if money spent/bought/paid).
-       If no transaction is mentioned, keep "transactions" as an empty array [].
+       - "type": strictly "income" (if money received/salary/earned) OR "expense" (if money spent/bought/paid).
+       If no transaction is mentioned, keep "transactions" as [].
     2. {lang_instruction}
-    3. Make "reply_message" a live, interactive two-way voice conversation. Acknowledge any saved income or expense warmly and end with a short follow-up question.
+    3. Make "reply_message" a friendly, natural conversational reply in {ai_lang} and end with a short follow-up question.
     
     Return ONLY valid JSON in this exact format:
     {{
-      "transactions": [{{"category": "Salary", "amount": 5000, "type": "income"}}, {{"category": "Fish", "amount": 500, "type": "expense"}}],
+      "transactions": [
+        {{
+          "category": "Name in {ai_lang}",
+          "category_en": "Fish",
+          "category_bn": "মাছ",
+          "category_hi": "मछली",
+          "amount": 500,
+          "type": "expense"
+        }}
+      ],
       "reply_message": "Your interactive reply + follow-up question strictly in {ai_lang}"
     }}
     """
@@ -216,6 +227,9 @@ def api_chat():
                     db.collection("expenses").document().set({
                         "username": session['username'],
                         "category": cat,
+                        "category_en": item.get("category_en", cat),
+                        "category_bn": item.get("category_bn", cat),
+                        "category_hi": item.get("category_hi", cat),
                         "amount": numeric_amt,
                         "type": tx_type,
                         "date_str": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
