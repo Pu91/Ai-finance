@@ -8,6 +8,102 @@
         /* Base Styles */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f7f8; margin: 0; padding-bottom: 120px; color: #2d333a; }
         
+        /* Top App Download Ad Banner */
+        .app-ad-banner {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            padding: 10px 14px;
+            display: none; /* Controlled by JS sessionStorage */
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+            position: relative;
+            z-index: 105;
+            animation: slideDown 0.35s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .ad-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 0;
+        }
+        .ad-app-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .ad-text-box {
+            overflow: hidden;
+        }
+        .ad-title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+             display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ad-badge {
+            background: #f59e0b;
+            color: #0f172a;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .ad-subtitle {
+            margin: 2px 0 0 0;
+            font-size: 11px;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ad-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .ad-download-btn {
+            background: linear-gradient(135deg, #10a37f, #059669);
+            color: white;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 7px 13px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(16, 163, 127, 0.4);
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+        .ad-download-btn:active { transform: scale(0.95); }
+        .ad-close-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            color: #cbd5e1;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
         /* Header */
         .header { display: flex; align-items: center; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); padding: 12px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #e5e5ea; }
         .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #2d333a; margin-right: 15px; }
@@ -99,6 +195,31 @@
     </style>
 </head>
 <body>
+
+    <!-- Top App Download Ad Banner (Shows once per app session, reappears on restart) -->
+    <div class="app-ad-banner" id="appAdBanner">
+        <div class="ad-left">
+            <!-- Custom AI Finance App Logo -->
+            <svg class="ad-app-icon" viewBox="0 0 108 108">
+                <rect width="108" height="108" rx="24" fill="#0F172A"/>
+                <circle cx="54" cy="54" r="44" fill="#1E293B"/>
+                <path fill="#F59E0B" d="M28,30 H62 V36 H28 Z M28,43 H58 V49 H28 Z M28,30 H44 C53,30 58,35 58,43 C58,51 52,56 42,56 H35 L56,80 H46 L26,56 V50 H41 C47,50 50,47 50,43 C50,38 47,36 41,36 H28 Z"/>
+                <rect x="66" y="47" width="5" height="16" rx="2.5" fill="#10A37F"/>
+                <rect x="74" y="38" width="5" height="34" rx="2.5" fill="#FF0080"/>
+                <rect x="82" y="49" width="5" height="12" rx="2.5" fill="#40E0D0"/>
+                <path fill="#FBBF24" d="M74,18 L76.5,24.5 L83,27 L76.5,29.5 L74,36 L71.5,29.5 L65,27 L71.5,24.5 Z"/>
+            </svg>
+            <div class="ad-text-box">
+                <p class="ad-title">AI Finance App <span class="ad-badge">FREE</span></p>
+                <p class="ad-subtitle">Get faster voice chat & instant access</p>
+            </div>
+        </div>
+        <div class="ad-actions">
+            <!-- নিচে href-এর ভেতরে আপনার APK ফাইলের ডাউনলোড লিংক দিতে পারেন -->
+            <a href="/static/AI_Finance.apk" download class="ad-download-btn">⬇ Download</a>
+            <button class="ad-close-btn" onclick="closeAdBanner()" title="Close">✕</button>
+        </div>
+    </div>
 
     <!-- Sidebar & Overlay -->
     <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
@@ -204,6 +325,19 @@
     </div>
 
     <script>
+        // App Download Ad Banner Logic (Shows once per session, resets when app/browser restarts)
+        function checkAdBanner() {
+            const isClosedThisSession = sessionStorage.getItem('adBannerClosed');
+            if (!isClosedThisSession) {
+                document.getElementById('appAdBanner').style.display = 'flex';
+            }
+        }
+
+        function closeAdBanner() {
+            document.getElementById('appAdBanner').style.display = 'none';
+            sessionStorage.setItem('adBannerClosed', 'true');
+        }
+
         let availableVoices = [];
         if ('speechSynthesis' in window) {
             const loadVoices = () => { availableVoices = window.speechSynthesis.getVoices(); };
@@ -212,6 +346,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            checkAdBanner();
             const savedLang = localStorage.getItem('aiLang') || 'English';
             document.getElementById('aiLang').value = savedLang;
             updateGreetingByLanguage(savedLang, false);
@@ -312,14 +447,12 @@
             };
             
             recognition.onerror = (e) => {
-                // নীরব থাকলে বা কথা না বললে নিজে থেকেই আবার লিসেনিং চালু রাখবে
                 if (isVoiceMode && !isAiProcessingOrSpeaking && e.error !== 'not-allowed') {
                     setTimeout(() => startListeningAgain(), 400);
                 }
             };
 
             recognition.onend = () => {
-                // যদি ইউজার কথা না বলে চুপ থাকে, তবুও মাইক বন্ধ হবে না—অটোমেটিক চালু থাকবে
                 if (isVoiceMode && !isAiProcessingOrSpeaking) {
                     setTimeout(() => startListeningAgain(), 300);
                 }
@@ -353,7 +486,6 @@
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         }
 
-        // AI কথা বলবে এবং কথা শেষ হলেই অটোমেটিক আপনার কথা শোনার জন্য মাইক অন করবে
         function speakReply(text) {
             if (!('speechSynthesis' in window)) {
                 isAiProcessingOrSpeaking = false;
@@ -390,7 +522,6 @@
             };
             
             utterance.onend = () => {
-                // AI-এর কথা শেষ হওয়ার সাথে সাথে আবার অটোমেটিক মাইক্রোফোন অন হবে!
                 isAiProcessingOrSpeaking = false;
                 if (isVoiceMode) {
                     voiceStatus.innerText = "YOUR TURN — LISTENING...";
