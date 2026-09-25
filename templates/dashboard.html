@@ -76,19 +76,24 @@
         .send-btn { width: 44px; height: 44px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0; background: #2d333a; color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
         .send-btn:active { transform: scale(0.9); }
 
-        /* Interactive Voice Agent Modal */
-        .voice-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(18px); z-index: 300; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; box-sizing: border-box; text-align: center; opacity: 0; pointer-events: none; transition: 0.3s ease; }
+        /* Hands-Free Live Voice Agent Modal */
+        .voice-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(20px); z-index: 300; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; box-sizing: border-box; text-align: center; opacity: 0; pointer-events: none; transition: 0.3s ease; }
         .voice-modal.active { opacity: 1; pointer-events: auto; }
-        .close-modal { position: absolute; top: 20px; right: 20px; background: #f0f0f0; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer; color: #2d333a; }
+        .close-modal { position: absolute; top: 20px; right: 20px; background: #f0f0f0; border: none; width: 42px; height: 42px; border-radius: 50%; font-size: 20px; cursor: pointer; color: #2d333a; }
         
-        .voice-status { font-size: 13px; font-weight: 700; letter-spacing: 1.5px; color: #ff0080; text-transform: uppercase; margin-bottom: 15px; }
-        .live-user-text { font-size: 20px; font-weight: 600; color: #2d333a; min-height: 32px; margin-bottom: 25px; max-width: 500px; }
-        .live-ai-text { font-size: 18px; font-weight: 600; color: #10a37f; min-height: 50px; margin-top: 25px; max-width: 500px; line-height: 1.4; }
+        .live-badge { background: #ffe4e6; color: #e11d48; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 20px; letter-spacing: 1.5px; margin-bottom: 12px; display: inline-flex; align-items: center; gap: 6px; }
+        .live-dot { width: 8px; height: 8px; background: #e11d48; border-radius: 50%; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .voice-status { font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #ff0080; text-transform: uppercase; margin-bottom: 15px; }
+        .live-user-text { font-size: 20px; font-weight: 600; color: #2d333a; min-height: 35px; margin-bottom: 25px; max-width: 500px; }
+        .live-ai-text { font-size: 18px; font-weight: 600; color: #10a37f; min-height: 60px; margin-top: 25px; max-width: 500px; line-height: 1.4; }
         
-        .waves { display: flex; align-items: center; justify-content: center; gap: 6px; height: 70px; cursor: pointer; padding: 15px; }
-        .wave { width: 7px; height: 18px; border-radius: 4px; background: linear-gradient(to top, #ff0080, #ff8c00); animation: soundWave 0.8s ease-in-out infinite alternate; }
+        .waves { display: flex; align-items: center; justify-content: center; gap: 7px; height: 75px; padding: 15px; }
+        .wave { width: 8px; height: 18px; border-radius: 5px; background: linear-gradient(to top, #ff0080, #ff8c00); animation: soundWave 0.7s ease-in-out infinite alternate; }
         .wave:nth-child(2) { animation-delay: 0.15s; } .wave:nth-child(3) { animation-delay: 0.3s; } .wave:nth-child(4) { animation-delay: 0.45s; } .wave:nth-child(5) { animation-delay: 0.6s; }
-        @keyframes soundWave { 0% { height: 12px; } 100% { height: 65px; } }
+        .waves.paused .wave { animation-play-state: paused; height: 12px !important; opacity: 0.4; }
+        @keyframes soundWave { 0% { height: 12px; } 100% { height: 68px; } }
         
         .tap-hint { font-size: 12px; color: #8e8ea0; margin-top: 20px; }
     </style>
@@ -107,7 +112,6 @@
             <p style="color:#8e8ea0; font-size:11px; margin-top:5px;">AI Finance Member</p>
         </div>
         
-        <!-- Language Selector for AI Responses -->
         <div class="lang-box">
             <label>AI Reply Language:</label>
             <select class="lang-select" id="aiLang" onchange="saveLanguage()">
@@ -175,18 +179,19 @@
     <div class="chat-footer">
         <div class="chat-wrapper">
             <input type="text" id="textInput" class="text-input" placeholder="Message AI Finance..." onkeypress="handleEnter(event)">
-            <button class="voice-anim-btn" onclick="openVoiceModal()" title="Start Voice Conversation"></button>
+            <button class="voice-anim-btn" onclick="openVoiceModal()" title="Start Hands-Free Live Voice"></button>
             <button class="send-btn" onclick="handleSendClick()">➤</button>
         </div>
     </div>
 
-    <!-- Live Voice Conversation Modal -->
+    <!-- Hands-Free Live Voice Conversation Modal -->
     <div class="voice-modal" id="voiceModal">
         <button class="close-modal" onclick="closeVoiceModal()">✕</button>
+        <div class="live-badge"><span class="live-dot"></span> HANDS-FREE LIVE</div>
         <div class="voice-status" id="voiceStatus">LISTENING...</div>
-        <div class="live-user-text" id="voiceText">"Speak now..."</div>
+        <div class="live-user-text" id="voiceText">"Speak naturally..."</div>
         
-        <div class="waves" onclick="startListeningAgain()" title="Tap to speak">
+        <div class="waves" id="waveBox">
             <div class="wave"></div>
             <div class="wave"></div>
             <div class="wave"></div>
@@ -195,11 +200,10 @@
         </div>
         
         <div class="live-ai-text" id="liveAiText"></div>
-        <div class="tap-hint">Tap the sound waves anytime to speak again</div>
+        <div class="tap-hint">Continuous Live Mode — Just speak after AI finishes!</div>
     </div>
 
     <script>
-        // Preload voices for mobile browsers
         let availableVoices = [];
         if ('speechSynthesis' in window) {
             const loadVoices = () => { availableVoices = window.speechSynthesis.getVoices(); };
@@ -207,7 +211,6 @@
             window.speechSynthesis.onvoiceschanged = loadVoices;
         }
 
-        // Load saved language on startup
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('aiLang') || 'English';
             document.getElementById('aiLang').value = savedLang;
@@ -218,15 +221,15 @@
             const lang = document.getElementById('aiLang').value;
             localStorage.setItem('aiLang', lang);
             updateGreetingByLanguage(lang, true);
-            toggleSidebar(); // ভাষা সিলেক্ট করলেই সাইডবার বন্ধ হয়ে যাবে
+            toggleSidebar();
         }
 
         function updateGreetingByLanguage(lang, addNewMessage) {
-            let msg = "✨ Hello! I am your AI Finance Agent. Tap the glowing voice button or type below to chat in English.";
+            let msg = "✨ Hello! I am your AI Finance Agent. Tap the glowing voice button for Hands-Free Live Conversation.";
             if (lang === 'Bengali') {
-                msg = "✨ হ্যালো! আমি আপনার এআই ফাইন্যান্স এজেন্ট। এখন থেকে আমি আপনার সাথে বাংলায় কথা বলবো ও হিসাব রাখবো।";
+                msg = "✨ হ্যালো! আমি আপনার এআই ফাইন্যান্স এজেন্ট। ভয়েস বাটনে ক্লিক করে সরাসরি লাইভ কথা বলুন।";
             } else if (lang === 'Hindi') {
-                msg = "✨ नमस्ते! मैं आपका एआई फाइनेंस एजेंट हूँ। अब से मैं आपसे हिंदी में बात करूँगा और हिसाब रखूँगा।";
+                msg = "✨ नमस्ते! मैं आपका एआई फाइनेंस एजेंट हूँ। लाइव बात करने के लिए वॉइस बटन दबाएं।";
             }
             if (addNewMessage) {
                 addChat(msg, 'ai');
@@ -236,13 +239,11 @@
             }
         }
 
-        // Sidebar Toggle
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
             document.getElementById('overlay').classList.toggle('active');
         }
 
-        // Initial Number Counter Animation
         const counters = document.querySelectorAll('.counter');
         counters.forEach(counter => {
             const target = Math.round(+counter.getAttribute('data-target'));
@@ -261,14 +262,17 @@
             else counter.innerText = 0;
         });
 
-        // Speech Recognition & Voice Agent Setup
+        // Continuous Hands-Free Voice Agent Setup
         const voiceModal = document.getElementById('voiceModal');
         const voiceStatus = document.getElementById('voiceStatus');
         const voiceText = document.getElementById('voiceText');
         const liveAiText = document.getElementById('liveAiText');
+        const waveBox = document.getElementById('waveBox');
         const chatBox = document.getElementById('chatBox');
+        
         let recognition;
         let isVoiceMode = false;
+        let isAiProcessingOrSpeaking = false;
 
         function getLangCode() {
             const lang = document.getElementById('aiLang').value;
@@ -284,8 +288,9 @@
             recognition.interimResults = true;
             
             recognition.onstart = () => {
-                voiceStatus.innerText = "LISTENING...";
-                voiceText.innerText = "Listening... Speak now";
+                if (!isVoiceMode) return;
+                waveBox.classList.remove('paused');
+                voiceStatus.innerText = "LISTENING TO YOU...";
             };
             
             recognition.onresult = (event) => {
@@ -293,49 +298,68 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript;
                 }
-                voiceText.innerText = `"${transcript}"`;
+                if (transcript.trim()) {
+                    voiceText.innerText = `"${transcript}"`;
+                }
 
-                if (event.results[0].isFinal) {
+                if (event.results[0].isFinal && transcript.trim()) {
+                    isAiProcessingOrSpeaking = true;
+                    waveBox.classList.add('paused');
                     voiceStatus.innerText = "AI THINKING...";
                     addChat(transcript, 'user');
                     sendDataToAI(transcript, true);
                 }
             };
             
-            recognition.onerror = () => {
-                voiceStatus.innerText = "TAP WAVES TO SPEAK AGAIN";
-                voiceText.innerText = "Couldn't catch that. Tap the waves to try again.";
+            recognition.onerror = (e) => {
+                // নীরব থাকলে বা কথা না বললে নিজে থেকেই আবার লিসেনিং চালু রাখবে
+                if (isVoiceMode && !isAiProcessingOrSpeaking && e.error !== 'not-allowed') {
+                    setTimeout(() => startListeningAgain(), 400);
+                }
+            };
+
+            recognition.onend = () => {
+                // যদি ইউজার কথা না বলে চুপ থাকে, তবুও মাইক বন্ধ হবে না—অটোমেটিক চালু থাকবে
+                if (isVoiceMode && !isAiProcessingOrSpeaking) {
+                    setTimeout(() => startListeningAgain(), 300);
+                }
             };
         }
 
         function openVoiceModal() {
             if (recognition) {
                 isVoiceMode = true;
+                isAiProcessingOrSpeaking = false;
                 voiceModal.classList.add('active');
+                voiceText.innerText = "Listening... Speak now";
                 liveAiText.innerText = "";
                 startListeningAgain();
             } else {
-                alert("Voice input not supported in your browser. Please use Chrome.");
+                alert("Voice input not supported in your browser. Please use Google Chrome.");
             }
         }
 
         function startListeningAgain() {
-            if (!recognition) return;
-            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            if (!recognition || !isVoiceMode || isAiProcessingOrSpeaking) return;
             recognition.lang = getLangCode();
             try { recognition.start(); } catch (e) {}
         }
 
         function closeVoiceModal() {
             isVoiceMode = false;
+            isAiProcessingOrSpeaking = false;
             voiceModal.classList.remove('active');
             if (recognition) recognition.stop();
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         }
 
-        // Text-to-Speech (Matches exact selected language voice)
+        // AI কথা বলবে এবং কথা শেষ হলেই অটোমেটিক আপনার কথা শোনার জন্য মাইক অন করবে
         function speakReply(text) {
-            if (!('speechSynthesis' in window)) return;
+            if (!('speechSynthesis' in window)) {
+                isAiProcessingOrSpeaking = false;
+                startListeningAgain();
+                return;
+            }
             window.speechSynthesis.cancel();
             
             const utterance = new SpeechSynthesisUtterance(text);
@@ -360,13 +384,25 @@
             if (targetVoice) utterance.voice = targetVoice;
             
             utterance.onstart = () => {
+                isAiProcessingOrSpeaking = true;
+                waveBox.classList.remove('paused');
                 voiceStatus.innerText = "AI SPEAKING...";
             };
+            
             utterance.onend = () => {
+                // AI-এর কথা শেষ হওয়ার সাথে সাথে আবার অটোমেটিক মাইক্রোফোন অন হবে!
+                isAiProcessingOrSpeaking = false;
                 if (isVoiceMode) {
-                    voiceStatus.innerText = "TAP WAVES TO REPLY";
+                    voiceStatus.innerText = "YOUR TURN — LISTENING...";
+                    setTimeout(() => startListeningAgain(), 350);
                 }
             };
+
+            utterance.onerror = () => {
+                isAiProcessingOrSpeaking = false;
+                if (isVoiceMode) setTimeout(() => startListeningAgain(), 350);
+            };
+
             window.speechSynthesis.speak(utterance);
         }
 
@@ -410,14 +446,12 @@
                 chatBox.removeChild(tempDiv);
                 addChat(data.reply, 'ai');
                 
-                // Real-time update of cards WITHOUT page reload
                 if (data.daily !== undefined) {
                     document.getElementById('dailyAmt').innerText = Math.round(data.daily);
                     document.getElementById('weeklyAmt').innerText = Math.round(data.weekly);
                     document.getElementById('monthlyAmt').innerText = Math.round(data.monthly);
                 }
 
-                // If in voice mode, display AI reply on modal and speak it out loud
                 if (fromVoice && isVoiceMode) {
                     liveAiText.innerText = data.reply;
                     speakReply(data.reply);
@@ -426,6 +460,8 @@
             .catch(err => {
                 chatBox.removeChild(tempDiv);
                 addChat("Connection error. Please try again.", 'ai');
+                isAiProcessingOrSpeaking = false;
+                if (fromVoice && isVoiceMode) startListeningAgain();
             });
         }
     </script>
