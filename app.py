@@ -23,6 +23,32 @@ db = firestore.client()
 def hash_pass(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
+# রিয়েল-টাইমে মোট খরচ হিসাব করার ফাংশন
+def get_totals(username):
+    now = datetime.datetime.now()
+    expenses_ref = db.collection("expenses").where("username", "==", username).stream()
+    
+    daily_total, weekly_total, monthly_total = 0, 0, 0
+    for exp in expenses_ref:
+        data = exp.to_dict()
+        exp_date = data.get("timestamp")
+        if not exp_date:
+            continue
+        exp_date = exp_date.replace(tzinfo=None)
+        try:
+            amt = float(data.get("amount", 0))
+        except (ValueError, TypeError):
+            amt = 0
+            
+        if exp_date.date() == now.date():
+            daily_total += amt
+        if exp_date.isocalendar()[1] == now.isocalendar()[1] and exp_date.year == now.year:
+            weekly_total += amt
+        if exp_date.month == now.month and exp_date.year == now.year:
+            monthly_total += amt
+            
+    return daily_total, weekly_total, monthly_total
+
 @app.route('/')
 def home():
     if 'username' in session:
@@ -58,61 +84,68 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'username' not in session: return redirect(url_for('home'))
-    now = datetime.datetime.now()
-    expenses_ref = db.collection("expenses").where("username", "==", session['username']).stream()
-    
-    daily_total, weekly_total, monthly_total = 0, 0, 0
-    for exp in expenses_ref:
-        data = exp.to_dict()
-        exp_date = data.get("timestamp")
-        if not exp_date: continue
-        exp_date = exp_date.replace(tzinfo=None)
-        amt = float(data.get("amount", 0))
-        if exp_date.date() == now.date(): daily_total += amt
-        if exp_date.isocalendar()[1] == now.isocalendar()[1] and exp_date.year == now.year: weekly_total += amt
-        if exp_date.month == now.month and exp_date.year == now.year: monthly_total += amt
-
+    if 'username' not in session:
+        return redirect(url_for('home'))
+    daily_total, weekly_total, monthly_total = get_totals(session['username'])
     return render_template('dashboard.html', username=session['username'], daily=daily_total, weekly=weekly_total, monthly=monthly_total)
 
 @app.route('/details/<period>')
 def details(period):
-    if 'username' not in session: return redirect(url_for('home'))
+    if 'username' not in session:
+        return redirect(url_for('home'))
     now = datetime.datetime.now()
-    expenses_ref = db.collection("expenses").where("username", "==", session['username']).order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+    expenses_ref = db.collection("expenses").where("username", "==", session['username']).stream()
     
     filtered_exp = []
     total = 0
     for exp in expenses_ref:
         data = exp.to_dict()
         exp_date = data.get("timestamp")
-        if not exp_date: continue
+        if not exp_date:
+            continue
         exp_date = exp_date.replace(tzinfo=None)
+        data['_sort_time'] = exp_date
         
         match = False
-        if period == 'daily' and exp_date.date() == now.date(): match = True
-        elif period == 'weekly' and exp_date.isocalendar()[1] == now.isocalendar()[1] and exp_date.year == now.year: match = True
-        elif period == 'monthly' and exp_date.month == now.month and exp_date.year == now.year: match = True
+        if period == 'daily' and exp_date.date() == now.date():
+            match = True
+        elif period == 'weekly' and exp_date.isocalendar()[1] == now.isocalendar()[1] and exp_date.year == now.year:
+            match = True
+        elif period == 'monthly' and exp_date.month == now.month and exp_date.year == now.year:
+            match = True
         
         if match:
             filtered_exp.append(data)
-            total += float(data.get("amount", 0))
+            try:
+                total += float(data.get("amount", 0))
+            except (ValueError, TypeError):
+                pass
+
+    # নতুন খরচগুলো সবার উপরে দেখানোর জন্য সর্টিং
+    filtered_exp.sort(key=lambda x: x['_sort_time'], reverse=True)
             
     return render_template('details.html', period=period.capitalize(), expenses=filtered_exp, total=total)
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    if 'username' not in session: return jsonify({"error": "Unauthorized"}), 401
+    if 'username' not in session:
+        return jsonify({"error": "Unauthorized"}), 401
     
     user_input = request.json.get('text')
     ai_lang = request.json.get('lang', 'English') 
     
     prompt = f"""
-    Extract the expenses from the user's input: "{user_input}"
-    Return a JSON object with exactly two keys:
-    1. "expenses": A list of objects with "category" and "amount". (Keep empty [] if no expense is found).
-    2. "reply_message": A friendly conversational response in {ai_lang} language acknowledging what was saved, or a friendly greeting if no expenses were found.
-    Output ONLY valid JSON.
+    The user is talking to you: "{user_input}"
+    
+    Instructions:
+    1. If the user mentions any expenses, extract them into the "expenses" list with "category" and numeric "amount". If it is general conversation without any expense, keep "expenses" as an empty list [].
+    2. Write a natural, friendly conversational reply in {ai_lang} language inside "reply_message". Talk like a smart human finance assistant. Keep it short and clear so it sounds great on voice output.
+    
+    Return ONLY a valid JSON object with these two keys:
+    {{
+      "expenses": [{{"category": "Fish", "amount": 500}}],
+      "reply_message": "Your conversational response in {ai_lang}"
+    }}
     """
     
     try:
@@ -120,7 +153,7 @@ def api_chat():
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a smart financial assistant. You always output pure JSON."
+                    "content": "You are a smart, friendly conversational AI Finance Agent. You always output pure JSON."
                 },
                 {
                     "role": "user",
@@ -139,15 +172,28 @@ def api_chat():
         for item in expenses:
             cat = item.get("category")
             amt = item.get("amount")
-            if cat and amt:
-                db.collection("expenses").document().set({
-                    "username": session['username'],
-                    "category": cat,
-                    "amount": amt,
-                    "date_str": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
-                    "timestamp": firestore.SERVER_TIMESTAMP
-                })
-        return jsonify({"reply": reply})
+            if cat and amt is not None:
+                try:
+                    numeric_amt = float(amt)
+                    db.collection("expenses").document().set({
+                        "username": session['username'],
+                        "category": cat,
+                        "amount": numeric_amt,
+                        "date_str": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p"),
+                        "timestamp": firestore.SERVER_TIMESTAMP
+                    })
+                except (ValueError, TypeError):
+                    pass
+                    
+        # পেজ রিলোড না করেই ড্যাশবোর্ডের কার্ড আপডেট করার জন্য নতুন টোটাল পাঠানো হচ্ছে
+        daily, weekly, monthly = get_totals(session['username'])
+        
+        return jsonify({
+            "reply": reply,
+            "daily": daily,
+            "weekly": weekly,
+            "monthly": monthly
+        })
     except Exception as e:
         print(f"Groq Error: {e}")
         return jsonify({"reply": f"API Error: {str(e)}"})
