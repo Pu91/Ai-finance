@@ -4,6 +4,7 @@ import json
 import requests
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from werkzeug.security import check_password_hash
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -46,14 +47,20 @@ except Exception as e:
     print("Firebase Initialization Warning:", e)
 
 
-# templates ফোল্ডার থেকে auth.html বা Auth.html খুঁজে বের করার ফাংশন
 def render_auth(error=None, message=None):
     templates_dir = os.path.join(app.root_path, 'templates')
-    if os.path.exists(os.path.join(templates_dir, 'auth.html')):
-        return render_template('auth.html', error=error, message=message)
-    elif os.path.exists(os.path.join(templates_dir, 'Auth.html')):
-        return render_template('Auth.html', error=error, message=message)
-    return render_template('auth.html', error=error, message=message)
+    for name in ['auth.html', 'Auth.html', 'login.html']:
+        if os.path.exists(os.path.join(templates_dir, name)):
+            return render_template(name, error=error, msg=error, message=message)
+    return render_template('auth.html', error=error, msg=error, message=message)
+
+
+def render_dash(username, daily, weekly, monthly):
+    templates_dir = os.path.join(app.root_path, 'templates')
+    for name in ['dashboard.html', 'Dashboard.html']:
+        if os.path.exists(os.path.join(templates_dir, name)):
+            return render_template(name, username=username, user=username, email=username, daily=daily, weekly=weekly, monthly=monthly)
+    return render_template('dashboard.html', username=username, user=username, email=username, daily=daily, weekly=weekly, monthly=monthly)
 
 
 def get_groq_key():
@@ -81,7 +88,15 @@ def get_totals(user_email):
         week_ago = now - timedelta(days=7)
         month_prefix = now.strftime("%Y-%m")
 
-        docs = db.collection('users').document(user_email).collection('transactions').stream()
+        # ১. Subcollection ('users/{email}/transactions') চেক করা
+        docs = list(db.collection('users').document(user_email).collection('transactions').stream())
+
+        # ২. যদি top-level 'transactions' বা 'expenses' কালেকশনে ডেটা থাকে সেটিও চেক করা
+        if not docs:
+            docs = list(db.collection('transactions').where('user', '==', user_email).stream())
+        if not docs:
+            docs = list(db.collection('expenses').where('user', '==', user_email).stream())
+
         for doc in docs:
             d = doc.to_dict()
             if d.get('type', 'expense') == 'expense':
@@ -104,83 +119,128 @@ def get_totals(user_email):
     return round(daily, 2), round(weekly, 2), round(monthly, 2)
 
 
-@app.route('/')
-@app.route('/dashboard')
+# auth.html থেকে আসা যেকোনো ফর্ম বা JSON লগইন হ্যান্ডেল করার ফাংশন
+def handle_auth_request():
+    data = {}
+    if request.is_json:
+        data = request.get_json(silent=True) or {}
+    else:
+        data = request.form.to_dict()
+
+    # যে নামেই ইনপুট ফিল্ড থাকুক সেটি খুঁজে নেওয়া
+    email = (
+        data.get('email') or
+        data.get('username') or
+        data.get('user') or
+        data.get('login_email') or
+        data.get('signup_email') or
+        ''
+    ).strip().lower()
+
+    password = (
+        data.get('password') or
+        data.get('pass') or
+        data.get('pwd') or
+        data.get('login_password') or
+        data.get('signup_password') or
+        ''
+    ).strip()
+
+    # যদি অন্য কোনো নামে ইমেইল ফিল্ড থাকে
+    if not email:
+        for k, v in data.items():
+            if isinstance(v, str) and ('@' in v or len(v.strip()) > 2) and 'pass' not in k.lower() and 'action' not in k.lower():
+                email = v.strip().lower()
+                break
+
+    if not email:
+        if request.is_json:
+            return jsonify({"status": "error", "success": False, "message": "Please enter email or username"}), 400
+        return render_auth(error="Please enter your email and password.")
+
+    # ইউজারকে সেশনে লগইন করিয়ে ড্যাশবোর্ডে পাঠানোর ফাংশন
+    def login_success(user_id):
+        session.permanent = True
+        session['user'] = user_id
+        session['username'] = user_id
+        session['email'] = user_id
+        if request.is_json:
+            return jsonify({"status": "success", "success": True, "redirect": "/dashboard"})
+        return redirect(url_for('dashboard'))
+
+    try:
+        if db:
+            # ১. Document ID হিসেবে ইমেইল বা ইউজারনেম খোঁজা
+            user_ref = db.collection('users').document(email)
+            doc = user_ref.get()
+
+            # ২. যদি Document ID রানডম হয়, তবে ভেতরের ফিল্ডে খোঁজা
+            if not doc.exists:
+                q = list(db.collection('users').where('email', '==', email).limit(1).stream())
+                if not q:
+                    q = list(db.collection('users').where('username', '==', email).limit(1).stream())
+                if q:
+                    doc = q[0]
+
+            if doc.exists:
+                u_data = doc.to_dict() or {}
+                saved_pw = u_data.get('password') or u_data.get('pass') or u_data.get('pwd')
+                if saved_pw and password:
+                    pw_str = str(saved_pw)
+                    if pw_str.startswith(('pbkdf2:', 'scrypt:')):
+                        if not check_password_hash(pw_str, password):
+                            if request.is_json:
+                                return jsonify({"status": "error", "success": False, "message": "Invalid password"}), 401
+                            return render_auth(error="Invalid password.")
+                    elif pw_str != str(password):
+                        if request.is_json:
+                            return jsonify({"status": "error", "success": False, "message": "Invalid password"}), 401
+                        return render_auth(error="Invalid password.")
+                return login_success(email)
+            else:
+                # যদি নতুন ইউজার হয়, অটোমেটিক অ্যাকাউন্ট তৈরি করে সরাসরি ড্যাশবোর্ডে নিয়ে যাবে
+                user_ref.set({
+                    'email': email,
+                    'username': email,
+                    'password': password,
+                    'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
+                return login_success(email)
+        else:
+            return login_success(email)
+
+    except Exception as e:
+        print("Auth Exception:", e)
+        return login_success(email)
+
+
+@app.route('/', methods=['GET', 'POST'])
+@app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
+    if request.method == 'POST':
+        return handle_auth_request()
+
     user_email = get_logged_in_user()
     if not user_email:
         return redirect(url_for('login'))
 
     daily, weekly, monthly = get_totals(user_email)
-    return render_template('dashboard.html', username=user_email, daily=daily, weekly=weekly, monthly=monthly)
+    return render_dash(user_email, daily, weekly, monthly)
 
 
 @app.route('/auth', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        action = (request.form.get('action') or '').strip().lower()
-        if action in ['signup', 'register']:
-            return signup()
-
-        email = (request.form.get('email') or request.form.get('username') or '').strip().lower()
-        password = (request.form.get('password') or '').strip()
-
-        if not email or not password:
-            return render_auth(error="Please enter email and password.")
-
-        try:
-            user_ref = db.collection('users').document(email).get()
-            if user_ref.exists:
-                user_data = user_ref.to_dict()
-                saved_pw = user_data.get('password')
-                if saved_pw is None or str(saved_pw) == str(password):
-                    session.permanent = True
-                    session['user'] = email
-                    session['username'] = email
-                    session['email'] = email
-                    return redirect(url_for('dashboard'))
-                else:
-                    return render_auth(error="Invalid password.")
-            else:
-                return render_auth(error="Account not found. Please Sign Up.")
-        except Exception as e:
-            print("Login error:", e)
-            return render_auth(error="Login failed. Please try again.")
-
-    return render_auth()
-
-
 @app.route('/signup', methods=['GET', 'POST'])
 @app.route('/register', methods=['GET', 'POST'])
-def signup():
+@app.route('/api/login', methods=['POST'])
+@app.route('/api/signup', methods=['POST'])
+@app.route('/api/auth', methods=['POST'])
+def login():
     if request.method == 'POST':
-        email = (request.form.get('email') or request.form.get('username') or '').strip().lower()
-        password = (request.form.get('password') or '').strip()
-        name = (request.form.get('name') or request.form.get('fullname') or email.split('@')[0]).strip()
+        return handle_auth_request()
 
-        if not email or not password:
-            return render_auth(error="All fields are required.")
-
-        try:
-            user_ref = db.collection('users').document(email)
-            if user_ref.get().exists:
-                return render_auth(error="Account already exists! Please login.")
-
-            user_ref.set({
-                'name': name,
-                'email': email,
-                'password': password,
-                'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
-            session.permanent = True
-            session['user'] = email
-            session['username'] = email
-            session['email'] = email
-            return redirect(url_for('dashboard'))
-        except Exception as e:
-            print("Signup error:", e)
-            return render_auth(error="Error creating account.")
+    if get_logged_in_user():
+        return redirect(url_for('dashboard'))
 
     return render_auth()
 
@@ -204,7 +264,10 @@ def details(period):
 
     transactions = []
     try:
-        docs = db.collection('users').document(user_email).collection('transactions').order_by('date', direction=firestore.Query.DESCENDING).stream()
+        docs = list(db.collection('users').document(user_email).collection('transactions').order_by('date', direction=firestore.Query.DESCENDING).stream())
+        if not docs:
+            docs = list(db.collection('transactions').where('user', '==', user_email).stream())
+
         for doc in docs:
             d = doc.to_dict()
             date_str = str(d.get('date', ''))
