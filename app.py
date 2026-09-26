@@ -64,54 +64,68 @@ def home():
 def login():
     if request.method == 'GET':
         return redirect(url_for('home'))
-    email = request.form.get('email', '').strip()
-    password = request.form.get('password', '').strip()
-    selected_role = request.form.get('role', '').strip()
+        
+    email = (request.form.get('email') or '').strip().lower()
+    password = request.form.get('password') or ''
+    selected_role = (request.form.get('role') or '').strip().lower()
 
-    user_ref = db.collection("users").document(email)
-    user = user_ref.get()
-    if user.exists and user.to_dict().get("password") == hash_pass(password):
-        session.permanent = True
-        session['username'] = email
-        # ইউজার লগইনের সময় যে ড্যাশবোর্ড সিলেক্ট করবে সেটি সেট হবে
-        role = selected_role or user.to_dict().get("role", "business")
-        session['role'] = role
-        user_ref.update({"role": role})
-        return redirect(url_for('dashboard'))
+    if not selected_role:
+        flash("Please select your category.")
+        return redirect(url_for('home'))
+
+    user_doc = db.collection("users").document(email).get()
+    if user_doc.exists:
+        user_data = user_doc.to_dict()
+        if user_data.get("password") == hash_pass(password):
+            saved_role = user_data.get("role")
+            
+            # যদি আগে থেকেই ক্যাটাগরি সেভ থাকে এবং ইউজার অন্য ক্যাটাগরি সিলেক্ট করে তবে লগইন ব্লক করবে
+            if saved_role and saved_role != selected_role:
+                role_labels = {
+                    "business": "Business",
+                    "student": "Student",
+                    "job": "Job Person",
+                    "worker": "Any Worker"
+                }
+                correct_name = role_labels.get(saved_role, saved_role.capitalize())
+                flash(f"This email is registered under '{correct_name}' category. Please select '{correct_name}' to login.")
+                return redirect(url_for('home'))
+            
+            # পুরনো অ্যাকাউন্টে যদি আগে role না থেকে থাকে, তবে প্রথমবার লগইনে সেটি লক করে দেবে
+            if not saved_role:
+                db.collection("users").document(email).update({"role": selected_role})
+                saved_role = selected_role
+
+            session.permanent = True
+            session['username'] = email
+            session['role'] = saved_role
+            return redirect(url_for('dashboard'))
 
     flash("Invalid email or password.")
     return redirect(url_for('home'))
 
 @app.route('/register', methods=['POST'])
 def register():
-    email = request.form.get('email', '').strip()
-    password = request.form.get('password', '').strip()
-    role = request.form.get('role', 'business').strip()
+    email = (request.form.get('email') or '').strip().lower()
+    password = request.form.get('password') or ''
+    selected_role = (request.form.get('role') or '').strip().lower()
+
+    if not selected_role:
+        flash("Please select a category to register.")
+        return redirect(url_for('home'))
 
     if db.collection("users").document(email).get().exists:
-        flash("Account already exists with this email! Please Login.")
+        flash("Account already exists with this email! Please login.")
         return redirect(url_for('home'))
     else:
         db.collection("users").document(email).set({
             "password": hash_pass(password),
-            "role": role
+            "role": selected_role
         })
         session.permanent = True
         session['username'] = email
-        session['role'] = role
+        session['role'] = selected_role
         return redirect(url_for('dashboard'))
-
-@app.route('/switch_role/<new_role>')
-def switch_role(new_role):
-    if 'username' not in session:
-        return redirect(url_for('home'))
-    if new_role in ['business', 'student', 'job', 'worker']:
-        session['role'] = new_role
-        try:
-            db.collection("users").document(session['username']).update({"role": new_role})
-        except Exception:
-            pass
-    return redirect(url_for('dashboard'))
 
 @app.route('/logout')
 def logout():
@@ -122,13 +136,8 @@ def logout():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('home'))
-    user_role = session.get('role')
-    if not user_role:
-        user_doc = db.collection("users").document(session['username']).get()
-        user_role = user_doc.to_dict().get("role", "business") if user_doc.exists else "business"
-        session['role'] = user_role
-
     daily_total, weekly_total, monthly_total = get_totals(session['username'])
+    user_role = session.get('role', 'business')
     return render_template(
         'dashboard.html',
         username=session['username'],
@@ -201,43 +210,54 @@ def api_chat():
     
     if ai_lang == 'Bengali':
         lang_instruction = "You MUST write 'reply_message' and 'category' strictly in Bengali script (বাংলা হরফে)."
-        non_finance_msg = "দুঃখিত, আমি শুধুমাত্র ফাইন্যান্স, টাকা-পয়সার হিসাব, EMI, ব্যবসা এবং ইনভেস্টমেন্ট সংক্রান্ত প্রশ্নের উত্তর দিই।"
+        non_finance_msg = "দুঃখিত, আমি শুধুমাত্র ফাইন্যান্স, টাকা-পয়সার হিসাব এবং ইনভেস্টমেন্ট সংক্রান্ত প্রশ্নের উত্তর দিই। অনুগ্রহ করে ফাইন্যান্স সম্পর্কিত প্রশ্ন করুন।"
     elif ai_lang == 'Hindi':
         lang_instruction = "You MUST write 'reply_message' and 'category' strictly in Hindi Devanagari script (हिंदी में)."
-        non_finance_msg = "क्षमा करें, मैं केवल फाइनेंस, हिसाब-किताब, EMI और निवेश से जुड़े सवालों के जवाब देता हूँ।"
+        non_finance_msg = "क्षमा करें, मैं केवल फाइनेंस, हिसाब-किताब और निवेश से जुड़े सवालों के जवाब देता हूँ। कृपया फाइनेंस से संबंधित प्रश्न पूछें।"
     else:
         lang_instruction = "You MUST write 'reply_message' and 'category' strictly in English."
-        non_finance_msg = "Sorry, I only answer questions related to finance, EMI, business calculations, and expense tracking."
+        non_finance_msg = "Sorry, I only answer questions related to finance, expense tracking, and investments. Please ask a finance-related question."
     
     prompt = f"""
     User message: "{user_input}"
-    User Profession/Role: {user_role}
+    User Category/Role: {user_role}
     Selected Language: {ai_lang}
     
     STRICT RULES YOU MUST FOLLOW:
-    1. FINANCE & CALCULATION GUARDRAIL:
-       - You ONLY answer topics related to personal finance, expense/income tracking, EMI calculation, interest calculation, business profit/loss, GST, discounts, student bill splitting, salary planning, SIP/mutual funds, daily wages (হাজিরা/মজুরি), and money management.
-       - If the user asks about ANYTHING outside finance/math calculations (e.g., movies, sports, politics, jokes, general knowledge), keep "transactions": [] and set "reply_message" strictly to: "{non_finance_msg}"
+    1. FINANCE-ONLY GUARDRAIL:
+       - You ONLY discuss personal/business finance, expense/income tracking, EMI, GST, profit/loss, budgeting, savings, share market, stocks, mutual funds, SIP, daily wages, and money management (plus basic greetings like Hi/Hello/হাই/হ্যালো).
+       - If the user asks about ANYTHING outside finance (e.g., movies, sports, politics, jokes, coding, general knowledge, etc.), you MUST keep "transactions": [] and set "reply_message" strictly to: "{non_finance_msg}"
 
-    2. SMART CALCULATIONS vs REAL EXPENSES:
-       - If the user asks to CALCULATE something (e.g., Loan EMI, interest, business profit, GST, discount, wage math, mess split, or investment plans like "আমি ৫০০ টাকা শেয়ার মার্কেটে ইনভেস্ট করতে চাই" or "১ লাখ টাকার ১০% সুদে ২ বছরের EMI কত?"), DO NOT add it to "transactions"! Keep "transactions": [] and solve the exact calculation clearly in "reply_message".
-       - Add an item to "transactions" ONLY when the user clearly states an expense or income HAS ALREADY HAPPENED (e.g., "৫০০ টাকা মাছ কিনলাম", "আজকে ৬০০ টাকা মজুরি পেলাম", "দোকানে ২০০০ টাকা মাল কিনলাম").
+    2. DO NOT ADD HYPOTHETICAL OR PLANNED AMOUNTS AS TRANSACTIONS:
+       - Add an item to the "transactions" array ONLY when the user clearly states that an expense or income HAS ALREADY HAPPENED (e.g., "৫০০ টাকা মাছ কিনলাম", "I spent 200 on food", "বেতন পেলাম ১০০০০ টাকা").
+       - If the user is ASKING A QUESTION, CALCULATING EMI/PROFIT/GST, SEEKING ADVICE, or PLANNING TO INVEST in the future (e.g., "আমি ৫০০ টাকা শেয়ার মার্কেটে ইনভেস্ট করতে চাই", "Where should I invest 500 taka?"), DO NOT add it to "transactions"! Keep "transactions": [] and give helpful financial calculation/advice in "reply_message".
 
     3. TRANSACTION EXTRACTION FORMAT (only for completed transactions):
        Each object in "transactions" MUST have:
        - "category": Item/expense name written strictly in {ai_lang}
-       - "category_en": Item/expense name in English
-       - "category_bn": Item/expense name in Bengali script
-       - "category_hi": Item/expense name in Hindi script
+       - "category_en": Item/expense name in English (e.g., "Fish")
+       - "category_bn": Item/expense name in Bengali script (e.g., "মাছ")
+       - "category_hi": Item/expense name in Hindi script (e.g., "मछली")
        - "amount": Numeric value only
-       - "type": strictly "income" OR "expense".
+       - "type": strictly "income" (if money received/salary/earned) OR "expense" (if money spent/bought/paid).
+       If no real completed transaction is mentioned, keep "transactions" as [].
 
     4. {lang_instruction}
+    5. Make "reply_message" a friendly, natural conversational reply in {ai_lang} and end with a short finance-related follow-up question.
     
     Return ONLY valid JSON in this exact format:
     {{
-      "transactions": [],
-      "reply_message": "Your accurate financial answer or confirmation strictly in {ai_lang}"
+      "transactions": [
+        {{
+          "category": "Name in {ai_lang}",
+          "category_en": "Fish",
+          "category_bn": "মাছ",
+          "category_hi": "मछली",
+          "amount": 500,
+          "type": "expense"
+        }}
+      ],
+      "reply_message": "Your interactive reply + follow-up question strictly in {ai_lang}"
     }}
     """
     
@@ -246,7 +266,7 @@ def api_chat():
             messages=[
                 {
                     "role": "system",
-                    "content": f"You are a live conversational AI Finance & Smart Calculator Agent for a {user_role}. {lang_instruction} Output pure JSON only."
+                    "content": f"You are a strict live conversational AI Finance & Investment Agent. {lang_instruction} You never answer non-finance questions and never record planned/hypothetical investments as completed expenses. Output pure JSON only."
                 },
                 {
                     "role": "user",
@@ -275,6 +295,7 @@ def api_chat():
                     if numeric_amt > 0:
                         db.collection("expenses").document().set({
                             "username": session['username'],
+                            "role": user_role,
                             "category": cat,
                             "category_en": item.get("category_en", cat),
                             "category_bn": item.get("category_bn", cat),
