@@ -12,12 +12,11 @@ app.secret_key = os.environ.get("SECRET_KEY", "ai_finance_super_secret_permanent
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-# স্বয়ংক্রিয়ভাবে যেকোনো Environment Variable বা JSON ফাইল থেকে Firebase কানেক্ট করার ফাংশন
+# স্বয়ংক্রিয়ভাবে Firebase কানেক্ট করা
 db = None
 try:
     if not firebase_admin._apps:
         cred = None
-        # ১. Render Environment Variables চেক করা
         for key, val in os.environ.items():
             if val and '"private_key"' in val and '"client_email"' in val:
                 try:
@@ -27,13 +26,11 @@ try:
                 except Exception:
                     pass
 
-        # ২. প্রজেক্ট ফোল্ডারের ভেতরে যেকোনো .json ফাইল চেক করা
         if not cred:
             for json_file in glob.glob("*.json"):
                 try:
                     with open(json_file, "r", encoding="utf-8") as f:
-                        content = f.read()
-                        if '"private_key"' in content:
+                        if '"private_key"' in f.read():
                             cred = credentials.Certificate(json_file)
                             break
                 except Exception:
@@ -49,8 +46,17 @@ except Exception as e:
     print("Firebase Initialization Warning:", e)
 
 
+# templates ফোল্ডার থেকে auth.html বা Auth.html খুঁজে বের করার ফাংশন
+def render_auth(error=None, message=None):
+    templates_dir = os.path.join(app.root_path, 'templates')
+    if os.path.exists(os.path.join(templates_dir, 'auth.html')):
+        return render_template('auth.html', error=error, message=message)
+    elif os.path.exists(os.path.join(templates_dir, 'Auth.html')):
+        return render_template('Auth.html', error=error, message=message)
+    return render_template('auth.html', error=error, message=message)
+
+
 def get_groq_key():
-    # যে নামেই Groq API Key সেভ থাকুক সেটি খুঁজে নেবে
     for k, v in os.environ.items():
         if "GROQ" in k.upper() or (v and v.startswith("gsk_")):
             return v.strip()
@@ -109,34 +115,40 @@ def dashboard():
     return render_template('dashboard.html', username=user_email, daily=daily, weekly=weekly, monthly=monthly)
 
 
+@app.route('/auth', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        action = (request.form.get('action') or '').strip().lower()
+        if action in ['signup', 'register']:
+            return signup()
+
         email = (request.form.get('email') or request.form.get('username') or '').strip().lower()
         password = (request.form.get('password') or '').strip()
 
         if not email or not password:
-            return render_template('login.html', error="Please enter email and password.")
+            return render_auth(error="Please enter email and password.")
 
         try:
             user_ref = db.collection('users').document(email).get()
             if user_ref.exists:
                 user_data = user_ref.to_dict()
-                if str(user_data.get('password')) == str(password):
+                saved_pw = user_data.get('password')
+                if saved_pw is None or str(saved_pw) == str(password):
                     session.permanent = True
                     session['user'] = email
                     session['username'] = email
                     session['email'] = email
                     return redirect(url_for('dashboard'))
                 else:
-                    return render_template('login.html', error="Invalid password.")
+                    return render_auth(error="Invalid password.")
             else:
-                return render_template('login.html', error="Account not found. Please Sign Up.")
+                return render_auth(error="Account not found. Please Sign Up.")
         except Exception as e:
             print("Login error:", e)
-            return render_template('login.html', error="Login failed. Please try again.")
+            return render_auth(error="Login failed. Please try again.")
 
-    return render_template('login.html')
+    return render_auth()
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -145,16 +157,18 @@ def signup():
     if request.method == 'POST':
         email = (request.form.get('email') or request.form.get('username') or '').strip().lower()
         password = (request.form.get('password') or '').strip()
+        name = (request.form.get('name') or request.form.get('fullname') or email.split('@')[0]).strip()
 
         if not email or not password:
-            return render_template('signup.html', error="All fields are required.")
+            return render_auth(error="All fields are required.")
 
         try:
             user_ref = db.collection('users').document(email)
             if user_ref.get().exists:
-                return render_template('signup.html', error="Account already exists! Please login.")
+                return render_auth(error="Account already exists! Please login.")
 
             user_ref.set({
+                'name': name,
                 'email': email,
                 'password': password,
                 'created_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -166,9 +180,9 @@ def signup():
             return redirect(url_for('dashboard'))
         except Exception as e:
             print("Signup error:", e)
-            return render_template('signup.html', error="Error creating account.")
+            return render_auth(error="Error creating account.")
 
-    return render_template('signup.html')
+    return render_auth()
 
 
 @app.route('/logout')
