@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Finance | Login & Register</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * { 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+        }
         body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #ffffff;
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #faf5ff 100%);
+            color: #1e1b4b;
             margin: 0;
             min-height: 100vh;
             display: flex;
@@ -17,30 +20,52 @@
             padding: 16px;
         }
         .auth-container {
-            background: rgba(30, 41, 59, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid #ddd6fe;
             border-radius: 24px;
             width: 100%;
             max-width: 410px;
             padding: 28px 22px;
-            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 45px rgba(124, 58, 237, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #8b5cf6, #6d28d9, #a855f7);
         }
         .app-logo {
             width: 62px;
             height: 62px;
-            margin: 0 auto 10px auto;
+            margin: 4px auto 10px auto;
             display: block;
             border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28);
         }
-        h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px; }
-        .subtitle { color: #94a3b8; font-size: 13px; margin: 5px 0 18px 0; }
+        h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px; 
+            color: #4c1d95; 
+        }
+        .subtitle { 
+            color: #6b7280; 
+            font-size: 13px; 
+            margin: 5px 0 18px 0; 
+        }
 
         /* Tabs */
         .tab-box {
             display: flex;
-            background: #0f172a;
+            background: #f5f3ff;
+            border: 1px solid #ddd6fe;
             border-radius: 14px;
             padding: 4px;
             margin-bottom: 18px;
@@ -50,7 +75,7 @@
             padding: 10px;
             border: none;
             background: transparent;
-            color: #94a3b8;
+            color: #6d28d9;
             font-size: 14px;
             font-weight: 700;
             border-radius: 10px;
@@ -58,9 +83,9 @@
             transition: 0.25s;
         }
         .tab-btn.active {
-            background: #10a37f;
-            color: white;
-            box-shadow: 0 2px 10px rgba(16, 163, 127, 0.4);
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
         }
 
         /* Role Selection Grid */
@@ -68,7 +93,7 @@
             text-align: left;
             font-size: 12px;
             font-weight: 700;
-            color: #cbd5e1;
+            color: #5b21b6;
             margin-bottom: 8px;
             display: block;
             text-transform: uppercase;
@@ -81,8 +106,8 @@
             margin-bottom: 18px;
         }
         .role-card {
-            background: #0f172a;
-            border: 2px solid #334155;
+            background: #faf8ff;
+            border: 2px solid #e9d5ff;
             border-radius: 14px;
             padding: 10px 8px;
             cursor: pointer;
@@ -92,13 +117,19 @@
             align-items: center;
             gap: 4px;
         }
+        .role-card:hover {
+            border-color: #c4b5fd;
+        }
         .role-card .r-icon { font-size: 22px; }
-        .role-card .r-title { font-size: 13px; font-weight: 700; color: #f8fafc; }
-        .role-card .r-sub { font-size: 10px; color: #94a3b8; }
+        .role-card .r-title { font-size: 13px; font-weight: 700; color: #2e1065; }
+        .role-card .r-sub { font-size: 10px; color: #6b7280; }
         .role-card.selected {
-            border-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.12);
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+            border-color: #7c3aed;
+            background: #f3e8ff;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.18);
+        }
+        .role-card.selected .r-title {
+            color: #5b21b6;
         }
 
         /* Inputs & Button */
@@ -107,37 +138,49 @@
             width: 100%;
             padding: 13px 15px;
             border-radius: 12px;
-            border: 1px solid #334155;
-            background: #0f172a;
-            color: white;
+            border: 1.5px solid #ddd6fe;
+            background: #faf8ff;
+            color: #1e1b4b;
             font-size: 15px;
             outline: none;
             transition: 0.2s;
         }
-        .input-group input:focus { border-color: #10a37f; }
+        .input-group input::placeholder {
+            color: #9ca3af;
+        }
+        .input-group input:focus { 
+            border-color: #7c3aed; 
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+        }
 
         .submit-btn {
             width: 100%;
             padding: 14px;
             border: none;
             border-radius: 12px;
-            background: linear-gradient(135deg, #10a37f, #059669);
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
             color: white;
             font-size: 16px;
             font-weight: 700;
             cursor: pointer;
             margin-top: 6px;
-            box-shadow: 0 4px 14px rgba(16, 163, 127, 0.4);
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.35);
+            transition: 0.2s;
+        }
+        .submit-btn:hover {
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.45);
         }
         .submit-btn:active { transform: scale(0.98); }
 
         .flash-msg {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            color: #fca5a5;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
             padding: 10px;
             border-radius: 10px;
             font-size: 13px;
+            font-weight: 600;
             margin-bottom: 14px;
         }
     </style>
@@ -145,15 +188,15 @@
 <body>
 
     <div class="auth-container">
-        <!-- App Logo -->
+        <!-- App Logo (Purple & Gold Theme) -->
         <svg class="app-logo" viewBox="0 0 108 108">
-            <rect width="108" height="108" rx="24" fill="#0F172A"/>
-            <circle cx="54" cy="54" r="44" fill="#1E293B"/>
-            <path fill="#F59E0B" d="M28,30 H62 V36 H28 Z M28,43 H58 V49 H28 Z M28,30 H44 C53,30 58,35 58,43 C58,51 52,56 42,56 H35 L56,80 H46 L26,56 V50 H41 C47,50 50,47 50,43 C50,38 47,36 41,36 H28 Z"/>
-            <rect x="66" y="47" width="5" height="16" rx="2.5" fill="#10A37F"/>
-            <rect x="74" y="38" width="5" height="34" rx="2.5" fill="#FF0080"/>
-            <rect x="82" y="49" width="5" height="12" rx="2.5" fill="#40E0D0"/>
-            <path fill="#FBBF24" d="M74,18 L76.5,24.5 L83,27 L76.5,29.5 L74,36 L71.5,29.5 L65,27 L71.5,24.5 Z"/>
+            <rect width="108" height="108" rx="24" fill="#4C1D95"/>
+            <circle cx="54" cy="54" r="44" fill="#6D28D9"/>
+            <path fill="#FBBF24" d="M28,30 H62 V36 H28 Z M28,43 H58 V49 H28 Z M28,30 H44 C53,30 58,35 58,43 C58,51 52,56 42,56 H35 L56,80 H46 L26,56 V50 H41 C47,50 50,47 50,43 C50,38 47,36 41,36 H28 Z"/>
+            <rect x="66" y="47" width="5" height="16" rx="2.5" fill="#34D399"/>
+            <rect x="74" y="38" width="5" height="34" rx="2.5" fill="#F472B6"/>
+            <rect x="82" y="49" width="5" height="12" rx="2.5" fill="#38BDF8"/>
+            <path fill="#FDE047" d="M74,18 L76.5,24.5 L83,27 L76.5,29.5 L74,36 L71.5,29.5 L65,27 L71.5,24.5 Z"/>
         </svg>
         <h1>AI Finance</h1>
         <p class="subtitle">Select your category & manage smart calculations</p>
@@ -173,27 +216,27 @@
         </div>
 
         <!-- Role Selector (Shared for both Login & Register) -->
-        <span class="role-label">👇 আপনার ড্যাশবোর্ড সিলেক্ট করুন (Select Your Role):</span>
+        <span class="role-label">👇 Select Your Dashboard Role:</span>
         <div class="role-grid">
             <div class="role-card selected" onclick="selectRole('business', this)">
                 <span class="r-icon">🏪</span>
                 <span class="r-title">Business</span>
-                <span class="r-sub">লাভ-ক্ষতি, GST, EMI</span>
+                <span class="r-sub">Profit, GST & EMI</span>
             </div>
             <div class="role-card" onclick="selectRole('student', this)">
                 <span class="r-icon">🎓</span>
                 <span class="r-title">Student</span>
-                <span class="r-sub">মেস হিসাব, পকেট মানি</span>
+                <span class="r-sub">Split Bill & Pocket Money</span>
             </div>
             <div class="role-card" onclick="selectRole('job', this)">
                 <span class="r-icon">💼</span>
                 <span class="r-title">Job Person</span>
-                <span class="r-sub">স্যালারি, EMI, SIP</span>
+                <span class="r-sub">Salary, EMI & SIP</span>
             </div>
             <div class="role-card" onclick="selectRole('worker', this)">
                 <span class="r-icon">🛠️</span>
                 <span class="r-title">Any Worker</span>
-                <span class="r-sub">হাজিরা, মজুরি, সুদ</span>
+                <span class="r-sub">Daily Wage & Interest</span>
             </div>
         </div>
 
