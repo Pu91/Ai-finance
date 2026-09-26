@@ -1,4 +1,5 @@
 import os
+import glob
 import json
 import requests
 from datetime import datetime, timedelta
@@ -7,38 +8,66 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
-# স্থায়ী Secret Key যাতে সার্ভার রিস্টার্ট বা পেজ রিফ্রেশ হলেও লগইন না কাটে
 app.secret_key = os.environ.get("SECRET_KEY", "ai_finance_super_secret_permanent_key_2026")
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
-# Firebase কানেকশন সেটআপ
-if not firebase_admin._apps:
-    firebase_env = os.environ.get("FIREBASE_CREDENTIALS") or os.environ.get("FIREBASE_KEY")
-    if firebase_env:
-        cred_dict = json.loads(firebase_env)
-        cred = credentials.Certificate(cred_dict)
-        firebase_admin.initialize_app(cred)
-    elif os.path.exists("serviceAccountKey.json"):
-        cred = credentials.Certificate("serviceAccountKey.json")
-        firebase_admin.initialize_app(cred)
-    else:
-        firebase_admin.initialize_app()
+# স্বয়ংক্রিয়ভাবে যেকোনো Environment Variable বা JSON ফাইল থেকে Firebase কানেক্ট করার ফাংশন
+db = None
+try:
+    if not firebase_admin._apps:
+        cred = None
+        # ১. Render Environment Variables চেক করা
+        for key, val in os.environ.items():
+            if val and '"private_key"' in val and '"client_email"' in val:
+                try:
+                    cred_dict = json.loads(val)
+                    cred = credentials.Certificate(cred_dict)
+                    break
+                except Exception:
+                    pass
 
-db = firestore.client()
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+        # ২. প্রজেক্ট ফোল্ডারের ভেতরে যেকোনো .json ফাইল চেক করা
+        if not cred:
+            for json_file in glob.glob("*.json"):
+                try:
+                    with open(json_file, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        if '"private_key"' in content:
+                            cred = credentials.Certificate(json_file)
+                            break
+                except Exception:
+                    pass
+
+        if cred:
+            firebase_admin.initialize_app(cred)
+        else:
+            firebase_admin.initialize_app()
+
+    db = firestore.client()
+except Exception as e:
+    print("Firebase Initialization Warning:", e)
 
 
-# ইউজার লগইন আছে কিনা তা চেক করার ফাংশন
+def get_groq_key():
+    # যে নামেই Groq API Key সেভ থাকুক সেটি খুঁজে নেবে
+    for k, v in os.environ.items():
+        if "GROQ" in k.upper() or (v and v.startswith("gsk_")):
+            return v.strip()
+    return ""
+
+
 def get_logged_in_user():
-    return session.get('user') or session.get('username') or session.get('email')
+    for key in ['user', 'username', 'email', 'user_email']:
+        if session.get(key):
+            return session.get(key)
+    return None
 
 
-# আজকের (Daily), সাপ্তাহিক (Weekly) এবং মাসিক (Monthly) হিসাব বের করার ফাংশন
 def get_totals(user_email):
-    daily = 0.0
-    weekly = 0.0
-    monthly = 0.0
+    daily, weekly, monthly = 0.0, 0.0, 0.0
+    if not db or not user_email:
+        return daily, weekly, monthly
 
     try:
         now = datetime.now()
@@ -49,18 +78,14 @@ def get_totals(user_email):
         docs = db.collection('users').document(user_email).collection('transactions').stream()
         for doc in docs:
             d = doc.to_dict()
-            tx_type = d.get('type', 'expense')
-            # ড্যাশবোর্ডের কার্ডে মোট খরচের হিসাব দেখানো হচ্ছে
-            if tx_type == 'expense':
+            if d.get('type', 'expense') == 'expense':
                 amt = float(d.get('amount', 0))
                 date_str = str(d.get('date', ''))
 
                 if date_str.startswith(today_str):
                     daily += amt
-
                 if date_str.startswith(month_prefix):
                     monthly += amt
-
                 try:
                     tx_date = datetime.strptime(date_str[:10], "%Y-%m-%d")
                     if tx_date >= week_ago.replace(hour=0, minute=0, second=0, microsecond=0):
@@ -94,13 +119,14 @@ def login():
             return render_template('login.html', error="Please enter email and password.")
 
         try:
-            user_Ref = db.collection('users').document(email).get()
-            if user_Ref.exists:
-                user_data = user_Ref.to_dict()
+            user_ref = db.collection('users').document(email).get()
+            if user_ref.exists:
+                user_data = user_ref.to_dict()
                 if str(user_data.get('password')) == str(password):
                     session.permanent = True
                     session['user'] = email
                     session['username'] = email
+                    session['email'] = email
                     return redirect(url_for('dashboard'))
                 else:
                     return render_template('login.html', error="Invalid password.")
@@ -136,6 +162,7 @@ def signup():
             session.permanent = True
             session['user'] = email
             session['username'] = email
+            session['email'] = email
             return redirect(url_for('dashboard'))
         except Exception as e:
             print("Signup error:", e)
@@ -199,7 +226,7 @@ def details(period):
 def ai_chat():
     user_email = get_logged_in_user()
     if not user_email:
-        return jsonify({"reply": "আপনার সেশন শেষ হয়ে গেছে। অনুগ্রহ করে মেনু থেকে একবার Logout করে আবার Login করুন।"}), 401
+        return jsonify({"reply": "অনুগ্রহ করে মেনু থেকে একবার লগআউট করে আবার লগইন করুন।"}), 401
 
     data = request.json or {}
     user_text = data.get('text', '').strip()
@@ -215,33 +242,34 @@ You MUST reply ONLY in {lang} language.
 STRICT RULES YOU MUST FOLLOW:
 
 1. GREETINGS (Hi / Hello / হাই / হ্যালো / নমস্কার):
-   - If the user greets you, set "action": "none", "amount": 0, and warmly greet them back in {lang} as their AI Finance Assistant, asking how you can help with their expense tracking or investment planning today.
+   - If the user greets you, set "action": "none", "amount": 0, and warmly greet them back in {lang} as their AI Finance Assistant.
 
 2. FINANCE-ONLY GUARDRAIL (REJECT NON-FINANCE QUESTIONS):
    - You ONLY answer questions related to personal finance, expense/income tracking, budgeting, savings, share market, stocks, mutual funds, SIP, gold, banking, loans, taxes, business, and money management.
-   - If the user asks about ANYTHING outside finance (such as sports, movies, politics, jokes, general knowledge, recipes, love/relationships, etc.), set "action": "none", "amount": 0, and strictly reply:
+   - If the user asks about ANYTHING outside finance (sports, movies, politics, jokes, general knowledge, etc.), set "action": "none", "amount": 0, and strictly reply:
      * If {lang} is Bengali: "দুঃখিত, আমি শুধুমাত্র ফাইন্যান্স, টাকা-পয়সার হিসাব এবং ইনভেস্টমেন্ট সংক্রান্ত প্রশ্নের উত্তর দিই। অনুগ্রহ করে ফাইন্যান্স সম্পর্কিত প্রশ্ন করুন।"
      * If {lang} is Hindi: "क्षमा करें, मैं केवल फाइनेंस, हिसाब-किताब और निवेश से जुड़े सवालों के जवाब देता हूँ। कृपया फाइनेंस से संबंधित प्रश्न पूछें।"
      * If {lang} is English: "Sorry, I only answer questions related to finance, expense tracking, and investments. Please ask a finance-related question."
 
 3. DO NOT ADD QUESTIONS OR FUTURE PLANS AS EXPENSES:
-   - Set "action": "add" ONLY when the user clearly states a real transaction HAS ALREADY HAPPENED (e.g., "আমি ৫০০ টাকা বাজার করলাম", "I spent 200 on food", "বেতন পেলাম ১০০০০ টাকা", "100 taka riksha bhara dilam").
-   - If the user is ASKING FOR ADVICE, PLANNING TO INVEST, or asking a hypothetical question (e.g., "আমি ৫০০ টাকা শেয়ার মার্কেটে ইনভেস্ট করতে চাই", "৫০০ টাকা কোথায় ইনভেস্ট করব?", "Should I invest 1000 in mutual funds?", "আমি ১০০০০ টাকা জমাতে চাই"), DO NOT add it to expenses or income! You MUST set "action": "none" and "amount": 0, and provide helpful financial/investment advice in "reply".
+   - Set "action": "add" ONLY when the user clearly states a real transaction HAS ALREADY HAPPENED (e.g., "আমি ৫০০ টাকা বাজার করলাম", "I spent 200 on food", "বেতন পেলাম ১০০০০ টাকা").
+   - If the user is ASKING FOR ADVICE, PLANNING TO INVEST, or asking a hypothetical question (e.g., "আমি ৫০০ টাকা শেয়ার মার্কেটে ইনভেস্ট করতে চাই", "৫০০ টাকা কোথায় ইনভেস্ট করব?"), DO NOT add it to expenses or income! Set "action": "none" and "amount": 0, and provide helpful investment advice in "reply".
 
 4. JSON OUTPUT FORMAT:
-   Respond ONLY with a valid JSON object in this exact format:
+   Respond ONLY with a valid JSON object:
    {{
      "action": "add" or "none",
      "type": "expense" or "income",
      "amount": number (0 if action is "none"),
      "category": "Short category name in English (e.g., Food, Groceries, Transport, Salary, Investment)",
-     "reply": "Your clear, natural response in {lang} (keep it concise, 1 to 3 sentences, suitable for voice speaking)"
+     "reply": "Your clear, natural response in {lang} (1 to 3 sentences)"
    }}
 """
 
     try:
+        api_key = get_groq_key()
         headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
         payload = {
@@ -265,8 +293,7 @@ STRICT RULES YOU MUST FOLLOW:
         category = parsed.get("category", "General")
         reply = parsed.get("reply", "Done.")
 
-        # শুধুমাত্র সত্যিকারের খরচ বা ইনকাম হলেই ডাটাবেসে সেভ হবে
-        if action == "add" and amount > 0:
+        if action == "add" and amount > 0 and db:
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             tx_data = {
                 "type": tx_type,
